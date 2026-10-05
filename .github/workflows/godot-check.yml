@@ -1,4 +1,4 @@
-name: Godot smoke test
+name: Game checks and builds
 
 on:
   push:
@@ -20,16 +20,8 @@ jobs:
           use-dotnet: false
           include-templates: true
 
-      - name: Import and parse project
-        run: godot --headless --editor --path . --quit
-
-      - name: Start main scene for two frames
-        run: godot --headless --path . --quit-after 2
-
-      - name: Export Windows prototype
-        run: |
-          mkdir -p build/windows
-          godot --headless --path . --export-release "Windows Desktop" build/windows/KatteloxDays.exe
+      - name: Validate gameplay and export Windows and Web
+        run: python tools/check_game.py --godot godot --export
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
@@ -37,3 +29,18 @@ jobs:
           name: KatteloxDays-Windows
           path: build/windows/
           if-no-files-found: error
+
+      - name: Upload Web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: KatteloxDays-Web
+          path: build/web/
+          if-no-files-found: error
+
+      - name: Upload validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: KatteloxDays-Validation
+          path: build/check-*.log
+          if-no-files-found: warn

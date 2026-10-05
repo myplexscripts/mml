@@ -1,819 +1,559 @@
 extends Node2D
-
-# Mega Man Legends: Kattelox Days
-# A non-commercial fan-game prototype built around the MML1 opening structure,
-# with a Stardew-like top-down presentation and daily-life loop.
-
-const SCREEN := Vector2(640, 360)
-const SURFACE_SIZE := Vector2(1600, 1100)
-const RUINS_SIZE := Vector2(1500, 1000)
-
-const C_SKY := Color8(69, 151, 226)
-const C_SEA := Color8(46, 142, 198)
-const C_GRASS := Color8(111, 161, 77)
-const C_GRASS_DARK := Color8(83, 132, 62)
-const C_PATH := Color8(207, 193, 145)
-const C_STONE := Color8(132, 141, 121)
-const C_STONE_DARK := Color8(75, 89, 83)
-const C_CREAM := Color8(231, 221, 191)
-const C_RED := Color8(190, 67, 57)
-const C_YELLOW := Color8(229, 184, 48)
-const C_BLUE := Color8(40, 103, 211)
-const C_BLUE_DARK := Color8(29, 69, 142)
-const C_CYAN := Color8(103, 225, 238)
-const C_TEAL := Color8(43, 112, 108)
-const C_BROWN := Color8(112, 77, 47)
-const C_BLACK := Color8(19, 30, 35)
-
-var world := "surface"
-var running := true
-var day := 1
-var minutes := 8 * 60
-var zenny := 300
-var repair_percent := 0
-var quest_started := false
-var ruins_unlocked := false
-var tron_event_ready := false
-var tron_battle_active := false
-var tron_defeated := false
-var ending_reached := false
-
-var player_pos := Vector2(360, 810)
-var player_facing := Vector2.DOWN
-var player_hp := 100
-var player_max_hp := 100
-var shot_cooldown := 0.0
-var dash_cooldown := 0.0
-var camera_pos := Vector2.ZERO
-
-var inventory := {
-    "servo_motor": false,
-    "ancient_circuit": false,
-    "large_refractor": false,
-}
-
-var friendship := {
-    "Roll": 2,
-    "Data": 3,
-    "Barrell": 1,
-    "Mayor Amelia": 0,
-    "Tron": 0,
-}
-
-var talked_today := {}
-var bullets: Array = []
+## Kattelox Days: an authored, completable adventure with a persistent life loop.
+const State = preload("res://scripts/state.gd")
+const World = preload("res://scripts/world.gd")
+const Player = preload("res://scripts/player.gd")
+const Enemy = preload("res://scripts/enemy.gd")
+const Projectile = preload("res://scripts/projectile.gd")
+const Pickup = preload("res://scripts/pickup.gd")
+const NPC = preload("res://scripts/npc.gd")
+const Audio = preload("res://scripts/audio.gd")
+const UI = preload("res://scripts/ui.gd")
+var state = State.new()
+var mode: String = "title"
+var area: String = "surface"
+var floor_number: int = 1
+var tool: int = 0
+var world
+var player
+var camera: Camera2D
+var audio
+var ui
 var enemies: Array = []
-var particles: Array = []
-
-var dialogue_speaker := ""
-var dialogue_lines: Array[String] = []
-var dialogue_index := 0
-var toast_text := ""
-var toast_timer := 0.0
-
-var last_interact_down := false
-var last_fire_down := false
-var last_sleep_down := false
-
-var surface_obstacles := [
-    Rect2(600, 665, 190, 112), # Junk Shop
-    Rect2(860, 420, 210, 130), # City Hall
-    Rect2(1115, 655, 210, 120), # Museum
-    Rect2(980, 850, 160, 100), # Cafe
-    Rect2(355, 390, 180, 105), # Police
-]
-
-var ruin_walls := [
-    Rect2(0, 0, 1500, 48), Rect2(0, 952, 1500, 48),
-    Rect2(0, 0, 48, 1000), Rect2(1452, 0, 48, 1000),
-    Rect2(300, 48, 48, 410), Rect2(300, 575, 48, 377),
-    Rect2(620, 245, 48, 707), Rect2(930, 48, 48, 435),
-    Rect2(930, 605, 48, 347), Rect2(1210, 245, 242, 48),
-    Rect2(1210, 575, 242, 48),
-]
+var npcs: Array = []
+var effects: Array = []
+var combo: int = 0
+var combo_time: float = 0.0
+var dig_score: int = 0
+var dig_kills: int = 0
+var shake: float = 0.0
+var clock: float = 0.0
+var notice: String = ""
+var notice_time: float = 0.0
+var pending: Dictionary = {}
+var fade: float = 0.0
+var fading_in: bool = false
+var save_clock: float = 0.0
+var interaction: Dictionary = {}
+var boss_rewarded: bool = false
+var last_sell: int = 0
+var visited: Dictionary = {}
+var effect_layer: Node2D
 
 func _ready() -> void:
-    get_viewport().set_embedding_subwindows(false)
-    set_process(true)
-    set_process_input(true)
-    _spawn_surface_state()
-    _show_dialogue("Roll", [
-        "MegaMan! You're awake.",
-        "The Flutter took a bad hit when we came down. The rudder and propulsion system are both damaged.",
-        "Come talk to me by the Flutter when you're ready. We'll figure out how to get off Kattelox together."
-    ])
-    queue_redraw()
+	configure_inputs()
+	get_tree().auto_accept_quit=false
+	camera=Camera2D.new()
+	camera.position=Vector2(410,730)
+	add_child(camera)
+	effect_layer=Node2D.new();effect_layer.z_index=40
+	effect_layer.draw.connect(draw_effects);add_child(effect_layer)
+	audio=Audio.new();audio.game=self;add_child(audio)
+	ui=UI.new();ui.game=self;add_child(ui)
+	build_area("surface",1,Vector2(350,781))
+	audio.track("town")
+	ui.title_screen()
+
+func configure_inputs() -> void:
+	var keys := {"move_left":[KEY_A,KEY_LEFT],"move_right":[KEY_D,KEY_RIGHT],"move_up":[KEY_W,KEY_UP],"move_down":[KEY_S,KEY_DOWN],"interact":[KEY_E,KEY_F,KEY_SPACE],"fire":[KEY_J],"dash":[KEY_SHIFT],"lock":[KEY_K],"heal":[KEY_Q],"pause_game":[KEY_ESCAPE],"map":[KEY_M],"inventory":[KEY_TAB],"sleep":[KEY_R],"tool_next":[KEY_T]}
+	for action in keys:
+		if not InputMap.has_action(action): InputMap.add_action(action)
+		for key in keys[action]:
+			var event:=InputEventKey.new();event.physical_keycode=key
+			InputMap.action_add_event(action,event)
+	var buttons := {"interact":JOY_BUTTON_A,"fire":JOY_BUTTON_X,"dash":JOY_BUTTON_RIGHT_SHOULDER,"lock":JOY_BUTTON_LEFT_SHOULDER,"pause_game":JOY_BUTTON_START,"heal":JOY_BUTTON_Y}
+	for action in buttons:
+		var event:=InputEventJoypadButton.new();event.button_index=buttons[action]
+		InputMap.action_add_event(action,event)
+	for action in ["move_left","move_right","move_up","move_down"]:
+		var event:=InputEventJoypadMotion.new()
+		event.axis=JOY_AXIS_LEFT_X if action in ["move_left","move_right"] else JOY_AXIS_LEFT_Y
+		event.axis_value=-1.0 if action in ["move_left","move_up"] else 1.0
+		InputMap.action_add_event(action,event)
+	for pair in [["fire",MOUSE_BUTTON_LEFT],["lock",MOUSE_BUTTON_RIGHT]]:
+		var event:=InputEventMouseButton.new();event.button_index=pair[1]
+		InputMap.action_add_event(pair[0],event)
+
+func active() -> bool:
+	return mode=="game" and is_instance_valid(player)
 
 func _process(delta: float) -> void:
-    if not running:
-        return
-
-    if toast_timer > 0.0:
-        toast_timer -= delta
-        if toast_timer <= 0.0:
-            toast_text = ""
-
-    if _dialogue_open():
-        _handle_dialogue_input()
-        queue_redraw()
-        return
-
-    minutes += delta * 2.0
-    if minutes > 22 * 60:
-        minutes = 22 * 60
-
-    shot_cooldown = maxf(0.0, shot_cooldown - delta)
-    dash_cooldown = maxf(0.0, dash_cooldown - delta)
-
-    _handle_player(delta)
-    _handle_bullets(delta)
-    _handle_enemies(delta)
-    _handle_pickups()
-    _handle_interactions()
-    _update_camera()
-    queue_redraw()
-
-func _input(event: InputEvent) -> void:
-    if event is InputEventKey and event.pressed and not event.echo:
-        if event.keycode == KEY_ESCAPE:
-            get_tree().quit()
-
-func _handle_player(delta: float) -> void:
-    var move := Vector2.ZERO
-    if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
-        move.y -= 1.0
-    if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
-        move.y += 1.0
-    if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
-        move.x -= 1.0
-    if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
-        move.x += 1.0
-
-    var speed := 115.0
-    if Input.is_key_pressed(KEY_SHIFT) and dash_cooldown <= 0.0 and move.length() > 0.1:
-        speed = 225.0
-        dash_cooldown = 0.55
-
-    if move.length() > 0.1:
-        move = move.normalized()
-        player_facing = move
-        var proposed := player_pos + move * speed * delta
-        _try_move_player(proposed)
-
-    var fire_down := Input.is_key_pressed(KEY_J)
-    if fire_down and not last_fire_down:
-        _fire_buster()
-    last_fire_down = fire_down
-
-    var sleep_down := Input.is_key_pressed(KEY_R)
-    if sleep_down and not last_sleep_down:
-        _try_sleep()
-    last_sleep_down = sleep_down
-
-func _try_move_player(proposed: Vector2) -> void:
-    var bounds := Rect2(Vector2(20, 20), SURFACE_SIZE - Vector2(40, 40))
-    var blockers := surface_obstacles
-    if world == "ruins":
-        bounds = Rect2(Vector2(25, 25), RUINS_SIZE - Vector2(50, 50))
-        blockers = ruin_walls
-
-    proposed.x = clampf(proposed.x, bounds.position.x, bounds.end.x)
-    proposed.y = clampf(proposed.y, bounds.position.y, bounds.end.y)
-
-    var body := Rect2(proposed - Vector2(8, 8), Vector2(16, 16))
-    for rect in blockers:
-        if body.intersects(rect):
-            return
-    player_pos = proposed
-
-func _handle_interactions() -> void:
-    var interact_down := Input.is_key_pressed(KEY_E) or Input.is_key_pressed(KEY_F) or Input.is_key_pressed(KEY_SPACE)
-    if interact_down and not last_interact_down:
-        _interact()
-    last_interact_down = interact_down
-
-func _interact() -> void:
-    if world == "surface":
-        for npc_name in ["Roll", "Data", "Barrell", "Mayor Amelia", "Tron"]:
-            var npc_pos := _npc_position(npc_name)
-            if npc_pos != Vector2(-9999, -9999) and player_pos.distance_to(npc_pos) < 44.0:
-                _talk_to(npc_name)
-                return
-
-        if ruins_unlocked and player_pos.distance_to(Vector2(790, 315)) < 52.0:
-            _enter_ruins()
-            return
-
-        if player_pos.distance_to(Vector2(360, 835)) < 105.0:
-            if repair_percent >= 100:
-                _show_dialogue("Roll", ["The Flutter is flightworthy again. We can leave Kattelox whenever you're ready."])
-            else:
-                _toast("The Flutter is still under repair.")
-            return
-    else:
-        if player_pos.distance_to(Vector2(750, 905)) < 55.0:
-            _leave_ruins()
-            return
-
-        if not inventory["servo_motor"] and player_pos.distance_to(Vector2(455, 185)) < 42.0:
-            inventory["servo_motor"] = true
-            zenny += 150
-            _toast("Servo Motor recovered  +150 Zenny")
-            return
-
-        if not inventory["ancient_circuit"] and player_pos.distance_to(Vector2(810, 795)) < 42.0:
-            inventory["ancient_circuit"] = true
-            zenny += 250
-            _toast("Ancient Circuit recovered  +250 Zenny")
-            return
-
-        if tron_defeated and not inventory["large_refractor"] and player_pos.distance_to(Vector2(1300, 830)) < 60.0:
-            inventory["large_refractor"] = true
-            zenny += 1000
-            _toast("Large Refractor recovered  +1000 Zenny")
-            return
-
-func _talk_to(name: String) -> void:
-    if name == "Roll":
-        _talk_roll()
-    elif name == "Data":
-        player_hp = player_max_hp
-        _show_dialogue("Data", ["Ook ook!", "Data dances happily. MegaMan's energy is fully restored."])
-    elif name == "Barrell":
-        if inventory["ancient_circuit"]:
-            _show_dialogue("Barrell", [
-                "That circuit is much older than the ruins near Apple Market.",
-                "Kattelox may have been built over something far larger than anyone realizes."
-            ])
-        else:
-            _show_dialogue("Barrell", [
-                "Digging is about more than treasure, MegaMan.",
-                "Keep your eyes open. The ruins usually tell a story if you're patient enough to listen."
-            ])
-    elif name == "Mayor Amelia":
-        _show_dialogue("Mayor Amelia", [
-            "Welcome to Kattelox. I'm sorry your visit began with a crash landing.",
-            "You may use the northern ruins while Roll repairs your ship. Please keep any Reaverbots away from the residential districts."
-        ])
-    elif name == "Tron":
-        if not tron_defeated and not tron_battle_active:
-            _show_dialogue("Tron", [
-                "So you're MegaMan? Hmph. You don't look like much.",
-                "That treasure in the ruins belongs to the Bonne family now!",
-                "Servbots! Get him!"
-            ])
-            tron_battle_active = true
-            _spawn_servbot_ambush()
-        else:
-            _show_dialogue("Tron", ["This isn't over, MegaMan!"])
-
-    if not talked_today.has(name):
-        talked_today[name] = true
-        friendship[name] = int(friendship.get(name, 0)) + 1
-
-func _talk_roll() -> void:
-    if not quest_started:
-        quest_started = true
-        ruins_unlocked = true
-        _show_dialogue("Roll", [
-            "The Flutter's in rough shape, MegaMan. The landing gear survived, but the propulsion system is a mess.",
-            "I need a Servo Motor, an Ancient Circuit, and a Refractor strong enough to restart the main engine.",
-            "There's an old ruin north of Central Kattelox. The Junk Shop says Diggers still pull useful parts out of it."
-        ])
-        return
-
-    if inventory["servo_motor"] and repair_percent < 34:
-        inventory["servo_motor"] = false
-        repair_percent = 34
-        _show_dialogue("Roll", [
-            "This servo is perfect! I can rebuild the port stabilizer with it.",
-            "There. One system down. We're still grounded, but the Flutter's starting to feel like home again."
-        ])
-        return
-
-    if inventory["ancient_circuit"] and repair_percent < 67:
-        inventory["ancient_circuit"] = false
-        repair_percent = 67
-        tron_event_ready = true
-        _show_dialogue("Roll", [
-            "An intact ancient circuit? Nice find! I can adapt this for the navigation controller.",
-            "Uh... MegaMan? I just picked up a pirate transmission. Somebody named Tron Bonne is asking around about you."
-        ])
-        return
-
-    if inventory["large_refractor"] and tron_defeated and repair_percent < 100:
-        inventory["large_refractor"] = false
-        repair_percent = 100
-        ending_reached = true
-        _show_dialogue("Roll", [
-            "MegaMan... this Refractor is more than enough.",
-            "Main engine pressure is stable. Navigation is back. The Flutter can fly again!",
-            "We could leave Kattelox tomorrow... but there are still ruins we haven't explored.",
-            "Maybe crashing here wasn't such a bad thing after all."
-        ])
-        _save_game()
-        return
-
-    _show_dialogue("Roll", [_current_roll_hint()])
-
-func _current_roll_hint() -> String:
-    if repair_percent < 34:
-        return "Start with the Servo Motor. Try the upper section of the northern ruin."
-    if repair_percent < 67:
-        return "The stabilizer is holding. I still need that Ancient Circuit."
-    if not tron_defeated:
-        return "Keep an eye out for the Bonnes. They're definitely on Kattelox now."
-    if repair_percent < 100:
-        return "All that's left is a large Refractor for the main engine."
-    return "She's ready whenever we are."
-
-func _enter_ruins() -> void:
-    world = "ruins"
-    player_pos = Vector2(750, 890)
-    bullets.clear()
-    enemies.clear()
-    _spawn_reaverbots()
-    _toast("Kattelox Ruins")
-
-func _leave_ruins() -> void:
-    world = "surface"
-    player_pos = Vector2(790, 365)
-    bullets.clear()
-    enemies.clear()
-    _toast("Central Kattelox")
-
-func _spawn_reaverbots() -> void:
-    var points := [
-        Vector2(440, 360), Vector2(540, 650), Vector2(760, 470),
-        Vector2(1050, 220), Vector2(1110, 720), Vector2(1320, 510)
-    ]
-    for p in points:
-        enemies.append({"pos": p, "hp": 3, "kind": "reaverbot", "cool": randf_range(0.6, 1.8)})
-
-func _spawn_servbot_ambush() -> void:
-    var points := [Vector2(780, 565), Vector2(840, 585), Vector2(900, 565), Vector2(810, 625), Vector2(875, 625)]
-    for p in points:
-        enemies.append({"pos": p, "hp": 2, "kind": "servbot", "cool": 999.0})
-    player_pos = Vector2(835, 710)
-    _toast("Bonne ambush!")
-
-func _fire_buster() -> void:
-    if shot_cooldown > 0.0 or _dialogue_open():
-        return
-    shot_cooldown = 0.16
-    var direction := player_facing.normalized()
-    if direction.length() < 0.1:
-        direction = Vector2.DOWN
-    bullets.append({
-        "pos": player_pos + direction * 13.0,
-        "vel": direction * 340.0,
-        "life": 1.2,
-        "enemy": false
-    })
-
-func _handle_bullets(delta: float) -> void:
-    for i in range(bullets.size() - 1, -1, -1):
-        var b: Dictionary = bullets[i]
-        b["pos"] += b["vel"] * delta
-        b["life"] -= delta
-
-        if bool(b["enemy"]):
-            if Vector2(b["pos"]).distance_to(player_pos) < 12.0:
-                bullets.remove_at(i)
-                player_hp -= 8
-                _toast("MegaMan took damage")
-                if player_hp <= 0:
-                    _knock_out()
-                continue
-        else:
-            var hit := false
-            for e_i in range(enemies.size() - 1, -1, -1):
-                var e: Dictionary = enemies[e_i]
-                if Vector2(b["pos"]).distance_to(Vector2(e["pos"])) < 18.0:
-                    e["hp"] = int(e["hp"]) - 1
-                    bullets.remove_at(i)
-                    hit = true
-                    _spark(Vector2(e["pos"]))
-                    if int(e["hp"]) <= 0:
-                        var reward := 120 if String(e["kind"]) == "reaverbot" else 80
-                        zenny += reward
-                        enemies.remove_at(e_i)
-                        _toast(("Reaverbot destroyed" if String(e["kind"]) == "reaverbot" else "Servbot defeated") + "  +%d Zenny" % reward)
-                    break
-            if hit:
-                continue
-
-        if float(b["life"]) <= 0.0:
-            bullets.remove_at(i)
-
-func _handle_enemies(delta: float) -> void:
-    for i in range(enemies.size()):
-        var enemy: Dictionary = enemies[i]
-        var ep := Vector2(enemy["pos"])
-        var distance := ep.distance_to(player_pos)
-        if distance < 215.0 and distance > 28.0:
-            ep += ep.direction_to(player_pos) * 28.0 * delta
-            enemy["pos"] = ep
-
-        enemy["cool"] = float(enemy["cool"]) - delta
-        if String(enemy["kind"]) == "reaverbot" and distance < 240.0 and float(enemy["cool"]) <= 0.0:
-            enemy["cool"] = randf_range(1.3, 2.0)
-            var dir := ep.direction_to(player_pos)
-            bullets.append({"pos": ep, "vel": dir * 165.0, "life": 2.3, "enemy": true})
-
-    if tron_battle_active:
-        var any_servbots := false
-        for enemy in enemies:
-            if String(enemy["kind"]) == "servbot":
-                any_servbots = true
-                break
-        if not any_servbots:
-            tron_battle_active = false
-            tron_defeated = true
-            _show_dialogue("Tron", [
-                "What?! You beat all of them?",
-                "Fine! Keep your stupid ruins for now. But this isn't over, MegaMan!"
-            ])
-
-func _handle_pickups() -> void:
-    if world != "ruins":
-        return
-
-func _knock_out() -> void:
-    player_hp = player_max_hp
-    world = "surface"
-    player_pos = Vector2(360, 790)
-    enemies.clear()
-    bullets.clear()
-    minutes = minf(minutes + 60.0, 22.0 * 60.0)
-    _show_dialogue("Roll", [
-        "MegaMan! Data found you and dragged you back to the Flutter.",
-        "Don't push yourself that hard. Those Reaverbots aren't going anywhere."
-    ])
-
-func _try_sleep() -> void:
-    if world != "surface" or player_pos.distance_to(Vector2(360, 835)) > 105.0:
-        _toast("You can only sleep aboard the Flutter.")
-        return
-    day += 1
-    minutes = 8 * 60
-    player_hp = player_max_hp
-    talked_today.clear()
-    _save_game()
-    _toast("Day %d" % day)
-
-func _save_game() -> void:
-    var save := {
-        "day": day,
-        "minutes": minutes,
-        "zenny": zenny,
-        "repair_percent": repair_percent,
-        "quest_started": quest_started,
-        "ruins_unlocked": ruins_unlocked,
-        "tron_event_ready": tron_event_ready,
-        "tron_defeated": tron_defeated,
-        "ending_reached": ending_reached,
-        "friendship": friendship,
-    }
-    var file := FileAccess.open("user://kattelox_days_save.json", FileAccess.WRITE)
-    if file:
-        file.store_string(JSON.stringify(save))
-
-func _handle_dialogue_input() -> void:
-    var interact_down := Input.is_key_pressed(KEY_E) or Input.is_key_pressed(KEY_F) or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_ENTER)
-    if interact_down and not last_interact_down:
-        dialogue_index += 1
-        if dialogue_index >= dialogue_lines.size():
-            dialogue_lines.clear()
-            dialogue_speaker = ""
-            dialogue_index = 0
-    last_interact_down = interact_down
-
-func _show_dialogue(speaker: String, lines: Array) -> void:
-    dialogue_speaker = speaker
-    dialogue_lines.clear()
-    for line in lines:
-        dialogue_lines.append(String(line))
-    dialogue_index = 0
-
-func _dialogue_open() -> bool:
-    return dialogue_lines.size() > 0
-
-func _toast(text: String) -> void:
-    toast_text = text
-    toast_timer = 1.6
-
-func _spark(pos: Vector2) -> void:
-    for i in range(5):
-        particles.append({"pos": pos, "vel": Vector2(randf_range(-35, 35), randf_range(-35, 35)), "life": 0.35})
-
-func _spawn_surface_state() -> void:
-    enemies.clear()
-
-func _npc_position(name: String) -> Vector2:
-    if world != "surface":
-        return Vector2(-9999, -9999)
-    var hour := minutes / 60.0
-    match name:
-        "Roll":
-            return Vector2(455, 820) if hour < 11.0 else Vector2(650, 720)
-        "Data":
-            return Vector2(325, 855) if hour < 14.0 else Vector2(1035, 875)
-        "Barrell":
-            return Vector2(390, 785) if hour < 10.0 else Vector2(1220, 815)
-        "Mayor Amelia":
-            return Vector2(965, 575) if hour < 17.0 else Vector2(1040, 875)
-        "Tron":
-            if tron_event_ready and not tron_defeated:
-                return Vector2(825, 585)
-    return Vector2(-9999, -9999)
-
-func _update_camera() -> void:
-    var size := SURFACE_SIZE if world == "surface" else RUINS_SIZE
-    var desired := player_pos - SCREEN * 0.5
-    desired.x = clampf(desired.x, 0.0, maxf(0.0, size.x - SCREEN.x))
-    desired.y = clampf(desired.y, 0.0, maxf(0.0, size.y - SCREEN.y))
-    camera_pos = camera_pos.lerp(desired, 0.14)
-
-func _objective_text() -> String:
-    if ending_reached:
-        return "Flutter repaired. Kattelox remains open to explore."
-    if not quest_started:
-        return "Talk to Roll at the crash site."
-    if repair_percent < 34:
-        return "Find a Servo Motor in the ruins."
-    if repair_percent < 67:
-        return "Find an Ancient Circuit deeper in the ruins."
-    if not tron_defeated:
-        return "Deal with the Bonne pirates in Central Kattelox."
-    if repair_percent < 100:
-        return "Find a large Refractor in the ruin core."
-    return "Talk to Roll."
-
-func _draw() -> void:
-    if world == "surface":
-        _draw_surface()
-    else:
-        _draw_ruins()
-
-    _draw_enemies()
-    _draw_bullets()
-    _draw_player()
-    _draw_hud()
-
-    if _dialogue_open():
-        _draw_dialogue()
-    elif toast_text != "":
-        _draw_toast()
-
-func _draw_surface() -> void:
-    draw_rect(Rect2(Vector2.ZERO, SCREEN), C_SEA)
-    var offset := -camera_pos
-    draw_rect(Rect2(offset + Vector2(0, 170), Vector2(SURFACE_SIZE.x, SURFACE_SIZE.y - 170)), C_GRASS)
-
-    # Cliff band and shoreline.
-    draw_rect(Rect2(offset + Vector2(0, 170), Vector2(SURFACE_SIZE.x, 42)), Color8(154, 143, 110))
-    for x in range(0, int(SURFACE_SIZE.x), 48):
-        var shade := Color8(142, 132, 102) if (x / 48) % 2 == 0 else Color8(166, 154, 117)
-        draw_rect(Rect2(offset + Vector2(x, 176), Vector2(38, 30)), shade)
-
-    # Main Kattelox roads.
-    draw_rect(Rect2(offset + Vector2(180, 550), Vector2(1260, 84)), C_PATH)
-    draw_rect(Rect2(offset + Vector2(745, 300), Vector2(88, 620)), C_PATH)
-    draw_rect(Rect2(offset + Vector2(240, 820), Vector2(1000, 70)), C_PATH)
-
-    # Grass pixel accents.
-    for i in range(60):
-        var gx := float((i * 127) % 1500 + 40)
-        var gy := float(260 + ((i * 211) % 760))
-        draw_rect(Rect2(offset + Vector2(gx, gy), Vector2(3, 3)), C_GRASS_DARK)
-
-    _draw_flutter(Vector2(360, 850))
-    _draw_building(Vector2(600, 665), Vector2(190, 112), Color8(177, 78, 59), "JUNK SHOP")
-    _draw_building(Vector2(860, 420), Vector2(210, 130), Color8(82, 113, 145), "CITY HALL")
-    _draw_building(Vector2(1115, 655), Vector2(210, 120), Color8(153, 91, 70), "MUSEUM")
-    _draw_building(Vector2(980, 850), Vector2(160, 100), Color8(95, 130, 101), "CAFE")
-    _draw_building(Vector2(355, 390), Vector2(180, 105), Color8(97, 119, 145), "POLICE")
-
-    # Ruin entrance.
-    var entrance := Vector2(790, 315) + offset
-    draw_rect(Rect2(entrance - Vector2(45, 22), Vector2(90, 44)), C_STONE_DARK)
-    draw_rect(Rect2(entrance - Vector2(24, 3), Vector2(48, 28)), C_BLACK)
-    _label("RUINS", entrance + Vector2(-20, -29), 10, C_CREAM)
-
-    # Trees, docks and environmental clutter.
-    var tree_points := [Vector2(500, 700), Vector2(550, 900), Vector2(1180, 880), Vector2(1290, 830), Vector2(1190, 520), Vector2(560, 470), Vector2(250, 660), Vector2(1390, 650)]
-    for p in tree_points:
-        _draw_tree(p + offset)
-
-    draw_rect(Rect2(offset + Vector2(190, 1030), Vector2(980, 12)), C_BROWN)
-    for x in range(210, 1160, 56):
-        draw_rect(Rect2(offset + Vector2(x, 1042), Vector2(38, 18)), Color8(205, 186, 135))
-
-    for npc in ["Roll", "Data", "Barrell", "Mayor Amelia", "Tron"]:
-        var np := _npc_position(npc)
-        if np != Vector2(-9999, -9999):
-            _draw_npc(npc, np + offset)
-
-func _draw_ruins() -> void:
-    draw_rect(Rect2(Vector2.ZERO, SCREEN), Color8(19, 38, 40))
-    var offset := -camera_pos
-    draw_rect(Rect2(offset, RUINS_SIZE), Color8(56, 75, 72))
-
-    # Repeating ancient panels.
-    for x in range(0, int(RUINS_SIZE.x), 64):
-        draw_line(offset + Vector2(x, 0), offset + Vector2(x, RUINS_SIZE.y), Color8(73, 93, 88), 1.0)
-    for y in range(0, int(RUINS_SIZE.y), 64):
-        draw_line(offset + Vector2(0, y), offset + Vector2(RUINS_SIZE.x, y), Color8(73, 93, 88), 1.0)
-
-    for wall in ruin_walls:
-        draw_rect(Rect2(wall.position + offset, wall.size), C_STONE)
-        draw_rect(Rect2(wall.position + offset + Vector2(4, 4), wall.size - Vector2(8, 8)), Color8(113, 125, 111), false, 2.0)
-
-    # Ancient circular wall nodes.
-    for p in [Vector2(150, 170), Vector2(470, 510), Vector2(790, 155), Vector2(1100, 760)]:
-        draw_circle(p + offset, 18, Color8(31, 78, 76))
-        draw_circle(p + offset, 9, Color8(71, 159, 153))
-
-    if not inventory["servo_motor"] and repair_percent < 34:
-        _draw_treasure_box(Vector2(455, 185) + offset, C_YELLOW)
-        _label("SERVO", Vector2(435, 218) + offset, 9, C_CREAM)
-    if not inventory["ancient_circuit"] and repair_percent < 67:
-        _draw_treasure_box(Vector2(810, 795) + offset, C_TEAL)
-        _label("CIRCUIT", Vector2(783, 828) + offset, 9, C_CREAM)
-    if tron_defeated and not inventory["large_refractor"] and repair_percent < 100:
-        _draw_refractor(Vector2(1300, 830) + offset)
-
-    var exit_pos := Vector2(750, 905) + offset
-    draw_rect(Rect2(exit_pos - Vector2(44, 17), Vector2(88, 34)), C_BLACK)
-    _label("EXIT", exit_pos + Vector2(-14, 4), 10, C_CREAM)
-
-func _draw_flutter(world_pos: Vector2) -> void:
-    var p := world_pos - camera_pos
-    draw_circle(p + Vector2(0, 15), 78, Color(0, 0, 0, 0.12))
-    draw_rect(Rect2(p + Vector2(-76, -30), Vector2(152, 64)), C_YELLOW)
-    draw_rect(Rect2(p + Vector2(-76, -30), Vector2(152, 16)), C_RED)
-    draw_rect(Rect2(p + Vector2(-48, -14), Vector2(96, 24)), Color8(37, 82, 119))
-    for x in [-42, -18, 6, 30]:
-        draw_rect(Rect2(p + Vector2(x, -10), Vector2(18, 16)), Color8(83, 153, 198))
-    draw_rect(Rect2(p + Vector2(50, -68), Vector2(18, 42)), C_RED)
-    draw_rect(Rect2(p + Vector2(-96, -4), Vector2(28, 26)), C_RED)
-    draw_rect(Rect2(p + Vector2(68, -4), Vector2(28, 26)), C_RED)
-    draw_circle(p + Vector2(56, 14), 7, Color8(55, 208, 103))
-    draw_line(p + Vector2(-62, -37), p + Vector2(54, -37), Color8(74, 79, 78), 2.0)
-    for x in range(-58, 56, 18):
-        draw_line(p + Vector2(x, -37), p + Vector2(x, -48), Color8(74, 79, 78), 2.0)
-
-    if repair_percent < 100:
-        draw_line(p + Vector2(73, 16), p + Vector2(90, 29), Color8(63, 51, 41), 3.0)
-    if repair_percent < 67:
-        draw_circle(p + Vector2(-58, 16), 11, Color(0.1, 0.1, 0.1, 0.25))
-    if repair_percent < 34:
-        draw_line(p + Vector2(-60, 30), p + Vector2(-72, 48), C_BROWN, 3.0)
-
-func _draw_building(pos: Vector2, size: Vector2, roof: Color, title: String) -> void:
-    var p := pos - camera_pos
-    draw_rect(Rect2(p, size), C_CREAM)
-    draw_rect(Rect2(p + Vector2(-4, -10), Vector2(size.x + 8, 18)), roof)
-    draw_rect(Rect2(p + Vector2(20, size.y - 38), Vector2(24, 38)), Color8(82, 108, 126))
-    draw_rect(Rect2(p + Vector2(size.x - 40, 30), Vector2(22, 22)), Color8(96, 137, 164))
-    _label(title, p + Vector2(8, size.y + 14), 9, C_BLACK)
-
-func _draw_tree(p: Vector2) -> void:
-    draw_rect(Rect2(p + Vector2(-3, 3), Vector2(6, 18)), Color8(102, 73, 45))
-    draw_circle(p + Vector2(0, -4), 15, Color8(64, 117, 57))
-    draw_circle(p + Vector2(-10, 1), 10, Color8(79, 139, 65))
-    draw_circle(p + Vector2(10, 1), 10, Color8(79, 139, 65))
-
-func _draw_player() -> void:
-    var p := player_pos - camera_pos
-    draw_circle(p + Vector2(0, 11), 10, Color(0, 0, 0, 0.18))
-    draw_rect(Rect2(p + Vector2(-7, -4), Vector2(14, 18)), C_BLUE)
-    draw_rect(Rect2(p + Vector2(-11, -2), Vector2(4, 14)), C_BLUE)
-    draw_rect(Rect2(p + Vector2(7, -2), Vector2(5, 14)), C_BLUE_DARK)
-    draw_rect(Rect2(p + Vector2(-6, 13), Vector2(5, 9)), Color8(178, 188, 198))
-    draw_rect(Rect2(p + Vector2(1, 13), Vector2(5, 9)), Color8(178, 188, 198))
-    draw_rect(Rect2(p + Vector2(-7, 20), Vector2(6, 4)), C_BLUE_DARK)
-    draw_rect(Rect2(p + Vector2(1, 20), Vector2(6, 4)), C_BLUE_DARK)
-    draw_circle(p + Vector2(0, -12), 7, Color8(237, 184, 139))
-    draw_rect(Rect2(p + Vector2(-7, -18), Vector2(14, 6)), Color8(89, 49, 38))
-    draw_rect(Rect2(p + Vector2(-4, 2), Vector2(8, 6)), Color8(226, 124, 42))
-
-func _draw_npc(name: String, p: Vector2) -> void:
-    draw_circle(p + Vector2(0, 9), 9, Color(0, 0, 0, 0.14))
-    if name == "Roll":
-        draw_circle(p + Vector2(0, -11), 6, Color8(238, 185, 137))
-        draw_rect(Rect2(p + Vector2(-7, -5), Vector2(14, 19)), C_RED)
-        draw_rect(Rect2(p + Vector2(-7, -18), Vector2(14, 6)), Color8(226, 196, 72))
-    elif name == "Data":
-        draw_circle(p + Vector2(0, -7), 8, Color8(213, 208, 194))
-        draw_rect(Rect2(p + Vector2(-6, 0), Vector2(12, 12)), Color8(68, 74, 76))
-        draw_circle(p + Vector2(-3, -8), 1.5, C_BLACK)
-        draw_circle(p + Vector2(3, -8), 1.5, C_BLACK)
-    elif name == "Barrell":
-        draw_circle(p + Vector2(0, -10), 7, Color8(219, 174, 132))
-        draw_rect(Rect2(p + Vector2(-8, -4), Vector2(16, 22)), Color8(211, 207, 188))
-        draw_rect(Rect2(p + Vector2(-7, -7), Vector2(14, 4)), Color.WHITE)
-    elif name == "Mayor Amelia":
-        draw_circle(p + Vector2(0, -10), 7, Color8(231, 181, 137))
-        draw_rect(Rect2(p + Vector2(-7, -4), Vector2(14, 22)), Color8(84, 121, 174))
-    elif name == "Tron":
-        draw_circle(p + Vector2(0, -11), 7, Color8(238, 176, 132))
-        draw_rect(Rect2(p + Vector2(-8, -5), Vector2(16, 23)), Color8(132, 43, 87))
-        draw_colored_polygon(PackedVector2Array([p + Vector2(-8, -17), p + Vector2(-17, -11), p + Vector2(-7, -9)]), Color8(55, 32, 62))
-        draw_colored_polygon(PackedVector2Array([p + Vector2(8, -17), p + Vector2(17, -11), p + Vector2(7, -9)]), Color8(55, 32, 62))
-    _label(name, p + Vector2(-18, 31), 8, Color.WHITE)
-
-func _draw_enemies() -> void:
-    for enemy in enemies:
-        var p := Vector2(enemy["pos"]) - camera_pos
-        draw_circle(p + Vector2(0, 11), 11, Color(0, 0, 0, 0.18))
-        if String(enemy["kind"]) == "servbot":
-            draw_rect(Rect2(p + Vector2(-8, -14), Vector2(16, 14)), C_YELLOW)
-            draw_circle(p + Vector2(-3, -8), 1.5, C_BLACK)
-            draw_circle(p + Vector2(3, -8), 1.5, C_BLACK)
-            draw_rect(Rect2(p + Vector2(-7, 0), Vector2(14, 15)), Color8(41, 92, 166))
-            draw_rect(Rect2(p + Vector2(-11, 1), Vector2(4, 9)), Color8(235, 143, 57))
-            draw_rect(Rect2(p + Vector2(7, 1), Vector2(4, 9)), Color8(235, 143, 57))
-        else:
-            draw_circle(p, 16, Color8(113, 132, 125))
-            draw_arc(p, 12, 0.0, TAU, 16, Color8(66, 88, 84), 4.0)
-            draw_circle(p + Vector2(0, 1), 4, Color8(236, 65, 53))
-            draw_rect(Rect2(p + Vector2(-14, 12), Vector2(5, 13)), Color8(77, 100, 96))
-            draw_rect(Rect2(p + Vector2(9, 12), Vector2(5, 13)), Color8(77, 100, 96))
-
-func _draw_bullets() -> void:
-    for b in bullets:
-        var p := Vector2(b["pos"]) - camera_pos
-        draw_circle(p, 3.5, Color8(255, 101, 89) if bool(b["enemy"]) else Color8(151, 243, 255))
-
-func _draw_treasure_box(p: Vector2, accent: Color) -> void:
-    draw_rect(Rect2(p + Vector2(-16, -10), Vector2(32, 20)), Color8(137, 91, 48))
-    draw_rect(Rect2(p + Vector2(-3, -10), Vector2(6, 20)), accent)
-
-func _draw_refractor(p: Vector2) -> void:
-    draw_colored_polygon(PackedVector2Array([
-        p + Vector2(0, -31), p + Vector2(20, -10), p + Vector2(14, 20),
-        p + Vector2(0, 35), p + Vector2(-16, 18), p + Vector2(-20, -11)
-    ]), Color8(75, 210, 229))
-    draw_colored_polygon(PackedVector2Array([
-        p + Vector2(0, -31), p + Vector2(20, -10), p + Vector2(0, 2), p + Vector2(-20, -11)
-    ]), Color8(163, 247, 255))
-
-func _draw_hud() -> void:
-    draw_rect(Rect2(8, 8, 112, 48), Color(0.03, 0.08, 0.12, 0.78))
-    _label("DAY %d" % day, Vector2(16, 23), 9, Color8(194, 209, 219))
-    _label(_time_string(), Vector2(16, 42), 14, Color.WHITE)
-    _label("%d Z" % zenny, Vector2(76, 42), 11, C_YELLOW)
-
-    draw_rect(Rect2(455, 8, 177, 55), Color(0.03, 0.08, 0.12, 0.78))
-    _label("FLUTTER REPAIR", Vector2(464, 21), 8, Color8(194, 209, 219))
-    draw_rect(Rect2(464, 27, 158, 7), Color8(52, 70, 77))
-    draw_rect(Rect2(464, 27, 158.0 * float(repair_percent) / 100.0, 7), C_YELLOW)
-    _label(_objective_text(), Vector2(464, 49), 8, Color.WHITE)
-
-    draw_rect(Rect2(8, 66, 12, 92), Color(0.03, 0.08, 0.12, 0.68))
-    var hp_height := 86.0 * float(player_hp) / float(player_max_hp)
-    draw_rect(Rect2(11, 69 + 86 - hp_height, 6, hp_height), Color8(72, 213, 126))
-
-func _draw_dialogue() -> void:
-    draw_rect(Rect2(14, 270, 612, 78), Color(0.03, 0.10, 0.16, 0.95))
-    draw_rect(Rect2(24, 280, 54, 54), Color8(38, 65, 82))
-    _label(dialogue_speaker.left(1), Vector2(43, 316), 24, C_YELLOW)
-    _label(dialogue_speaker, Vector2(90, 292), 12, Color8(247, 211, 123))
-    if dialogue_index < dialogue_lines.size():
-        _wrapped_label(dialogue_lines[dialogue_index], Vector2(90, 311), 520, 10, Color.WHITE)
-    _label("E / F / SPACE", Vector2(526, 339), 8, Color8(142, 166, 181))
-
-func _draw_toast() -> void:
-    var width := maxf(140.0, float(toast_text.length()) * 6.0 + 24.0)
-    draw_rect(Rect2((SCREEN.x - width) * 0.5, 316, width, 28), Color(0.02, 0.05, 0.07, 0.88))
-    _label(toast_text, Vector2((SCREEN.x - width) * 0.5 + 12, 334), 9, Color.WHITE)
-
-func _label(text: String, pos: Vector2, size: int, color: Color) -> void:
-    draw_string(ThemeDB.fallback_font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
-
-func _wrapped_label(text: String, pos: Vector2, width: float, size: int, color: Color) -> void:
-    var words := text.split(" ")
-    var line := ""
-    var y := pos.y
-    for word in words:
-        var proposed := line + (" " if line != "" else "") + String(word)
-        var measured := ThemeDB.fallback_font.get_string_size(proposed, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
-        if measured > width and line != "":
-            _label(line, Vector2(pos.x, y), size, color)
-            line = String(word)
-            y += size + 4
-        else:
-            line = proposed
-    if line != "":
-        _label(line, Vector2(pos.x, y), size, color)
-
-func _time_string() -> String:
-    var hour24 := int(minutes / 60.0) % 24
-    var minute := int(minutes) % 60
-    var suffix := "PM" if hour24 >= 12 else "AM"
-    var hour12 := hour24 % 12
-    if hour12 == 0:
-        hour12 = 12
-    return "%d:%02d %s" % [hour12, minute, suffix]
+	clock+=delta
+	if notice_time>0: notice_time-=delta
+	if not pending.is_empty():
+		fade=minf(1,fade+delta*4)
+		if fade>=1:
+			var target:=pending.duplicate();pending.clear()
+			build_area(target.area,target.floor,target.spawn)
+			fading_in=true
+	elif fading_in:
+		fade=maxf(0,fade-delta*4)
+		if fade<=0:
+			fading_in=false;mode="game";ui.clear_overlay()
+			if area=="ruins": radio("Roll","I've got your signal. Watch the red eyes, and come home in one piece!")
+	if active():
+		state.minutes=minf(1439,state.minutes+delta*1.8)
+		save_clock+=delta
+		combo_time=maxf(0,combo_time-delta)
+		if combo_time<=0: combo=0
+		if state.minutes>=1439: knock_out(true)
+		if save_clock>45: save_clock=0;state.save_game()
+		interaction=find_interaction()
+		visited[Vector2i(player.position/32)]=true
+		update_effects(delta)
+	if is_instance_valid(player):
+		var desired: Vector2=player.global_position
+		if mode=="title": desired=Vector2(420+sin(clock*0.09)*45,710)
+		desired.x=clampf(desired.x,320,maxf(320,world.size.x-320))
+		desired.y=clampf(desired.y,180,maxf(180,world.size.y-180))
+		if area=="bonne": desired=Vector2(320,240)
+		camera.position=camera.position.lerp(desired,1-exp(-delta*8))
+		shake=maxf(0,shake-delta*16)
+		camera.offset=Vector2(randf_range(-shake,shake),randf_range(-shake,shake)) if not state.reduced_motion and active() else Vector2.ZERO
+	ui.refresh(delta)
+	effect_layer.queue_redraw()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.echo: return
+	if event is InputEventKey and event.pressed and event.physical_keycode==KEY_F11:
+		var full:=DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if full else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		get_viewport().set_input_as_handled();return
+	if event.is_action_pressed("pause_game"):
+		if mode=="game": ui.pause_screen("Status")
+		elif mode in ["pause","menu","fishing","summary"]: ui.cancel_overlay()
+		elif mode=="dialogue": ui.advance_dialogue()
+		get_viewport().set_input_as_handled();return
+	if event.is_action_pressed("interact"):
+		if mode=="game": interact()
+		elif mode=="dialogue": ui.advance_dialogue()
+		elif mode=="fishing": ui.fish_press()
+		elif mode in ["menu","summary","title","pause"]:
+			var focused:=get_viewport().gui_get_focus_owner()
+			if focused is Button: focused.pressed.emit()
+		get_viewport().set_input_as_handled();return
+	if not active(): return
+	if event.is_action_pressed("map"): ui.pause_screen("Map")
+	elif event.is_action_pressed("inventory"): ui.pause_screen("Equipment")
+	elif event.is_action_pressed("sleep"):
+		if area=="cabin" or area=="surface" and player.position.distance_to(Vector2(310,771))<115: open_home()
+		else: toast("Sleep aboard the Flutter. Find its door beside Roll.")
+	elif event.is_action_pressed("tool_next"): tool=(tool+1)%4
+	elif event is InputEventKey and event.pressed:
+		if event.physical_keycode in [KEY_1,KEY_2,KEY_3,KEY_4]: tool=event.physical_keycode-KEY_1
+
+func _notification(what: int) -> void:
+	if what==NOTIFICATION_WM_CLOSE_REQUEST:
+		if mode!="title": state.save_game()
+		call_deferred("quit_game")
+	elif what==NOTIFICATION_APPLICATION_FOCUS_OUT and mode=="game" and is_instance_valid(ui): ui.pause_screen("Status")
+
+func quit_game() -> void:
+	mode="transition"
+	audio.shutdown()
+	await get_tree().create_timer(0.1).timeout
+	get_tree().quit()
+
+func start_new() -> void:
+	state=State.new();tool=0;mode="game"
+	build_area("surface",1,Vector2(350,781));ui.clear_overlay()
+	dialogue("Roll",["MegaMan! You're finally awake. The Flutter made it to Kattelox, but her engine didn't.","We'll make this island our home while I fix her. Come see me for the repair list. Data can save our progress, and the garden beside the ship is ours to use.","The northern ruins have the parts we need. Let's get you moving first!"])
+	state.save_game()
+
+func continue_game() -> void:
+	if not state.load_game(): toast("The save could not be read. Start a new adventure.");return
+	mode="game";build_area("surface",1,Vector2(350,781));ui.clear_overlay()
+	toast("Welcome back to Kattelox. Day %d."%state.day);audio.refresh()
+
+func build_area(destination: String, depth: int, spawn: Vector2) -> void:
+	enemies.clear();npcs.clear();effects.clear();visited.clear()
+	if is_instance_valid(world): world.free()
+	area=destination;floor_number=depth
+	if area in ["ruins","bonne"]: tool=0
+	world=World.new();world.game=self;world.area=destination;world.floor_number=depth
+	add_child(world);move_child(world,0)
+	player=Player.new();player.game=self;player.position=spawn
+	world.entities.add_child(player)
+	if area=="surface":
+		for entry in [["Roll","roll"],["Data","data"],["Barrell","barrell"],["Amelia","amelia"],["Junk Shop Man","junkman"]]: spawn_npc(entry[0],entry[1],npc_destination(entry[0]))
+		if state.repair>=2: spawn_npc("Tron","tron",Vector2(800,566))
+		if is_instance_valid(audio): audio.track("town")
+	elif area=="bonne": audio.track("boss")
+	elif area=="cabin":
+		spawn_npc("Data","data",Vector2(254,307))
+		spawn_npc("Barrell","barrell",Vector2(205,218))
+		audio.track("town")
+	else:
+		tool=0
+		dig_score=0;dig_kills=0;boss_rewarded=false;audio.track("ruins")
+	camera.position=Vector2(clampf(spawn.x,320,maxf(320,world.size.x-320)),clampf(spawn.y,180,maxf(180,world.size.y-180)))
+	if area=="bonne": camera.position=Vector2(320,240)
+	interaction={}
+
+func travel(destination: String, depth: int = 1, spawn: Vector2 = Vector2(350,781)) -> void:
+	mode="transition";ui.clear_overlay()
+	pending={"area":destination,"floor":depth,"spawn":spawn};fade=0
+	audio.effect("door");state.save_game()
+
+func spawn_npc(person: String, art: String, at: Vector2) -> void:
+	var npc=NPC.new();npc.game=self;npc.person=person;npc.art=art;npc.position=at
+	world.entities.add_child(npc);npcs.append(npc)
+
+func spawn_enemy(kind: String, at: Vector2, hp: int = 30, is_boss: bool = false) -> void:
+	var enemy=Enemy.new();enemy.game=self;enemy.kind=kind;enemy.health=hp;enemy.boss=is_boss
+	enemy.reward=240 if is_boss else 28+floor_number*8
+	enemy.score_value=1000 if is_boss else 100+floor_number*25
+	enemy.position=at;world.entities.add_child(enemy);enemies.append(enemy)
+
+func shoot(at: Vector2, velocity: Vector2, hostile: bool, damage: int) -> void:
+	var shot=Projectile.new();shot.game=self;shot.position=at;shot.speed=velocity;shot.hostile=hostile;shot.damage=damage
+	shot.life=2.8 if hostile else 1.05+state.power*0.18
+	world.entities.add_child(shot)
+
+func nearest_enemy(at: Vector2, distance: float):
+	var target=null
+	for enemy in enemies:
+		if not is_instance_valid(enemy) or enemy.defeated: continue
+		var d: float=enemy.position.distance_to(at)
+		if d<distance and line_clear(at,enemy.position): distance=d;target=enemy
+	return target
+
+func line_clear(from: Vector2, to: Vector2) -> bool:
+	var query:=PhysicsRayQueryParameters2D.create(from,to,1)
+	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
+
+func enemy_defeated(enemy) -> void:
+	enemies.erase(enemy);combo=mini(8,combo+1);combo_time=5
+	var points: int=enemy.score_value*(1+int(combo/3))
+	dig_score+=points;dig_kills+=1;state.score+=points;state.enemies_today+=1
+	floating(enemy.position+Vector2(0,-50),"+%d"%points,Color("ffe2a0"))
+	for i in range(3): drop(enemy.position,"zenny",int(enemy.reward/3),Vector2(randf_range(-55,55),randf_range(-30,30)))
+	drop(enemy.position,"scrap",3 if enemy.boss else 1,Vector2(15,-30))
+	if enemy.boss: drop(enemy.position,"relic",1,Vector2(-15,-25))
+	boss_rewarded=boss_rewarded or enemy.boss
+	burst(enemy.position+Vector2(0,-20),Color("f6b779"),22,110)
+	shake=6 if enemy.boss else 2;audio.effect("explosion",0.7 if enemy.boss else 1.1)
+	if area=="bonne" and enemy.boss: call_deferred("win_bonne")
+	elif enemy.boss:
+		radio("Roll","The guardian's signal is gone! The cache is safe to open.")
+		state.best_dig=maxi(state.best_dig,dig_score)
+
+func drop(at: Vector2, kind: String, amount: int, motion: Vector2) -> void:
+	var item=Pickup.new();item.game=self;item.position=at;item.kind=kind;item.amount=amount;item.motion=motion
+	world.entities.add_child(item)
+
+func win_bonne() -> void:
+	state.tron_defeated=true;state.items.scrap+=9;state.items.relic+=1;state.zenny+=540
+	for enemy in enemies:
+		if is_instance_valid(enemy): enemy.queue_free()
+	enemies.clear()
+	dialogue("Tron",["My beautiful machine! Do you have any idea how long that took to build?!","Fine. Take the core Refractor. But you owe me a rematch, MegaMan!"],"bonne_return")
+	state.save_game()
+
+func npc_destination(person: String) -> Vector2:
+	if area=="cabin": return Vector2(254,307) if person=="Data" else Vector2(205,218)
+	var hour: float=state.minutes/60
+	match person:
+		"Roll": return Vector2(441,745) if hour<11 or hour>=18 else Vector2(598,712)
+		"Data": return Vector2(277,787) if hour<15 else Vector2(870,821)
+		"Barrell": return Vector2(399,795) if hour<10 or hour>=19 else Vector2(1075,713)
+		"Amelia": return Vector2(800,458) if hour<17 else Vector2(951,823)
+		"Junk Shop Man": return Vector2(522,715)
+		"Tron": return Vector2(800,567)
+	return Vector2(400,700)
+
+func find_interaction() -> Dictionary:
+	if not is_instance_valid(world) or not is_instance_valid(player): return {}
+	var found: Dictionary={}
+	var best: float=46
+	for npc in npcs:
+		if not is_instance_valid(npc): continue
+		var distance: float=player.position.distance_to(npc.position)
+		if distance<best: best=distance;found={"action":"npc","person":npc.person,"name":npc.person,"pos":npc.position}
+	for item in world.interactables:
+		var distance: float=player.position.distance_to(item.pos)
+		if distance<best: best=distance;found=item
+	if area=="surface" and found.is_empty():
+		for i in range(world.crop_nodes.size()):
+			var distance: float=player.position.distance_to(world.crop_nodes[i].pos)
+			if distance<27 and distance<best:
+				best=distance
+				var crop: Dictionary=state.crops[i]
+				var text: String="Harvest Turnip" if int(crop.stage)==3 else ("Till Soil" if not crop.tilled else ("Plant Seed" if int(crop.stage)<0 else ("Water Crop" if not crop.watered else "Growing Turnip")))
+				found={"action":"crop","index":i,"name":text,"pos":world.crop_nodes[i].pos}
+	return found
+
+func interact() -> void:
+	interaction=find_interaction()
+	if not interaction.is_empty(): execute_interaction(interaction)
+
+func execute_interaction(item: Dictionary) -> void:
+	audio.effect("select")
+	match item.action:
+		"npc": talk_to(item.person)
+		"home": open_home()
+		"cabin": travel("cabin",1,Vector2(320,380))
+		"cabin_exit": travel("surface",1,Vector2(350,781))
+		"workshop": open_workshop()
+		"galley": ui.menu("FLUTTER GALLEY","Cook your catch to restore health and energy.",[{"text":"Cook one lake fish","action":"fish_lunch","disabled":state.items.fish<1}])
+		"shop": open_shop()
+		"museum": open_museum()
+		"cafe": open_cafe()
+		"hall": dialogue("Amelia",["The Flutter crew is welcome on Kattelox. The request board offers rewards for helping our neighbours.","If you find any ancient relics, the museum would love to see them. Thank you for looking after our island!"])
+		"ruins": open_ruins()
+		"sell": sell_produce()
+		"board": open_board()
+		"fish":
+			if state.energy>=5: state.energy-=5;ui.fishing_screen()
+			else: toast("Rest or have something from the cafe first.")
+		"exit": state.best_dig=maxi(state.best_dig,dig_score);travel("surface",1,Vector2(640,299))
+		"treasure": recover_treasure(item)
+		"crop": farm(int(item.index))
+
+func talk_to(person: String) -> void:
+	state.greet(person)
+	match person:
+		"Roll": ui.menu("ROLL'S WORKSHOP","Flutter systems, Buster parts and a little encouragement.",[{"text":"Flutter repairs","action":"roll_story"},{"text":"Upgrade equipment","action":"workshop"},{"text":"Spend some time with Roll","action":"greet_roll"}])
+		"Data":
+			state.health=state.max_health();state.energy=100
+			var saved: bool=state.save_game()
+			dialogue("Data",["Ook ook!","Data patches up your armour, recharges your energy and %s."%("saves your adventure" if saved else "cannot save right now")])
+		"Barrell": dialogue("Barrell",["The people here run on Refractors, MegaMan. Lights, machines, even our Flutter.","Look for the old red eyes in the ruins. Those machines have been guarding something for a very long time."])
+		"Amelia": dialogue("Amelia",["Good to see you, MegaMan! The request board has work if you need Zenny.","I hear you've made a little garden near your airship. A home is more than a place to sleep, isn't it?"])
+		"Junk Shop Man": open_shop()
+		"Tron":
+			if not state.tron_defeated: dialogue("Tron",["So you're the Digger who's been taking our treasure? Hmph!","Servbots! Bring out the machine! Let's see what that Buster can really do!"],"start_bonne")
+			else: dialogue("Tron",["Don't look so pleased with yourself. Next time, I'll bring a bigger machine!","...Your garden is nice, though. Don't tell the Servbots I said that."])
+
+func roll_story() -> void:
+	if not state.quest_started:
+		state.quest_started=true
+		dialogue("Roll",["Let's start with the port stabilizer. I need a Servo Motor from the first ruin level.","The entrance is north of City Hall. I'll stay on the radio while you dig. Bring the motor straight back and I'll fit it."])
+		state.save_game();return
+	var part: String="servo" if state.repair==0 else ("circuit" if state.repair==1 else "refractor")
+	if state.repair<3 and int(state.items[part])>0:
+		state.items[part]-=1;state.repair+=1;state.score+=500;state.zenny+=200;audio.effect("item")
+		if state.repair==1: dialogue("Roll",["This Servo Motor is perfect! The stabilizer is working again.","The lift in the ruins can now reach the second level. I'll need an Ancient Circuit from there to restore navigation."])
+		elif state.repair==2:
+			if area=="surface": spawn_npc("Tron","tron",Vector2(800,567))
+			dialogue("Roll",["Navigation restored! The only thing left is the engine's main Refractor.","Uh... someone's broadcasting a pirate challenge from the plaza. Tron Bonne is waiting near the request board. Be careful, MegaMan!"])
+		else:
+			state.completed=true
+			dialogue("Roll",["MegaMan... this Refractor is beautiful. Main engine pressure is stable. The Flutter can fly again!","We could leave tomorrow, but we've made a home here. There are still ruins, friends and a garden waiting for us.","Thank you for bringing us home, MegaMan. Kattelox is part of our story now."],"ending")
+		state.save_game();return
+	var hints := ["The Servo Motor is in the western chamber on ruin level 1. Watch the Horokkos around the cache.","The Ancient Circuit is in the northern chamber on level 2. Its guardian has a red eye and a very bad temper.","Tron is waiting in the plaza. Once her machine is down, we can reach the core Refractor on level 3.","The Flutter is flightworthy! Deep digs are open now. Or we could take a quiet day on the island."]
+	if state.repair==2 and state.tron_defeated: hints[2]="The last Refractor is in the northern vault on level 3. Defeat its guardian, open the cache, then come home."
+	dialogue("Roll",[hints[state.repair]])
+
+func dialogue(person: String, lines: Array, after: String = "") -> void:
+	ui.dialogue_screen(person,lines,after)
+
+func dialogue_done(after: String) -> void:
+	resume_game()
+	match after:
+		"start_bonne": travel("bonne",1,Vector2(320,340))
+		"bonne_return": travel("surface",1,Vector2(794,596))
+		"ending": ui.summary_screen("THE FLUTTER CAN FLY",["All three systems restored.","Total score: %s    Best dig: %s"%[state.score,state.best_dig],"Keep living on Kattelox, or take on the Deep Dig."])
+
+func open_ruins() -> void:
+	if not state.quest_started: dialogue("Roll",["Before you go down there, come see me beside the Flutter. We need a repair plan!"]);return
+	var choices: Array=[{"text":"Level 1: Stabilizer chambers","action":"dig_1"}]
+	choices.append({"text":"Level 2: Navigation vault","action":"dig_2","disabled":state.repair<1})
+	choices.append({"text":"Level 3: Refractor core","action":"dig_3","disabled":not state.tron_defeated})
+	if state.completed: choices.append({"text":"Deep Dig: Challenge run","action":"dig_4"})
+	ui.menu("NORTHERN RUINS","Choose a lift destination. E opens caches. Return via the southern lift.",choices)
+
+func recover_treasure(item: Dictionary) -> void:
+	for enemy in enemies:
+		if is_instance_valid(enemy) and not enemy.defeated and (enemy.boss or enemy.position.distance_to(item.pos)<110): toast("The cache is guarded. Clear the nearby Reaverbots first.");return
+	var part: String=item.part
+	if floor_number>=4: state.zenny+=500;state.items.relic+=1;state.score+=1500;dig_score+=1500
+	else: state.items[part]=1;state.score+=250;dig_score+=250
+	if is_instance_valid(item.sprite): item.sprite.queue_free()
+	world.interactables.erase(item);state.best_dig=maxi(state.best_dig,dig_score)
+	audio.effect("item");state.save_game()
+	var names: Dictionary={"servo":"Servo Motor","circuit":"Ancient Circuit","refractor":"Large Refractor"}
+	dialogue("Roll",["Nice work, MegaMan! %s recovered. Take the southern lift back and bring it to the Flutter."%names[part]] if floor_number<4 else ["Deep Dig complete! Another relic, 500 Zenny and a new score for the logbook. Let's head home."])
+
+func open_workshop() -> void:
+	var choices: Array=[]
+	for entry in [["power","Buster Power",350,4],["rapid","Rapid Fire",300,3],["armour","Armour Jacket",400,5]]:
+		var level: int=state.get(entry[0]);var cost: int=entry[2]+level*200;var scrap: int=entry[3]+level*2
+		choices.append({"text":"%s Lv.%d   %d Z + %d scrap"%[entry[1],level+1,cost,scrap] if level<3 else "%s MAX"%entry[1],"action":"upgrade_"+entry[0],"disabled":level>=3 or state.zenny<cost or state.items.scrap<scrap})
+	ui.menu("ROLL'S WORKSHOP","Zenny %d   Scrap %d. Power increases damage and range."%[state.zenny,state.items.scrap],choices)
+
+func upgrade(stat: String) -> void:
+	var level: int=state.get(stat);var base: Dictionary={"power":[350,4],"rapid":[300,3],"armour":[400,5]}
+	var cost: int=base[stat][0]+level*200;var scrap: int=base[stat][1]+level*2
+	if level>=3 or state.zenny<cost or state.items.scrap<scrap: return
+	state.zenny-=cost;state.items.scrap-=scrap;state.set(stat,level+1)
+	if stat=="armour": state.health=state.max_health()
+	audio.effect("item");state.save_game();toast("Roll fitted your new %s upgrade."%stat);open_workshop()
+
+func open_shop() -> void:
+	ui.menu("JUNK SHOP","Zenny %d. Seeds become turnips after three watered nights."%state.zenny,[{"text":"Turnip seeds x6   90 Z","action":"buy_seeds","disabled":state.zenny<90},{"text":"Energy bottle   100 Z","action":"buy_heal","disabled":state.zenny<100},{"text":"Scrap bundle x4   180 Z","action":"buy_scrap","disabled":state.zenny<180}])
+
+func open_cafe() -> void:
+	ui.menu("KATTELOX CAFE","A little breathing room between digs.",[{"text":"Lunch: restore health and energy   60 Z","action":"lunch","disabled":state.zenny<60},{"text":"Trade a fish for lunch","action":"fish_lunch","disabled":state.items.fish<1}])
+
+func open_museum() -> void:
+	ui.menu("KATTELOX MUSEUM","Relics donated: %d. Each donation earns 250 Z and 500 score."%state.museum_donated,[{"text":"Donate one ancient relic","action":"donate","disabled":state.items.relic<1},{"text":"Ask Barrell about the ruins","action":"museum_story"}])
+
+func open_board() -> void:
+	ui.menu("TOWN REQUESTS","Today's requests. New work appears after sleeping aboard the Flutter.",[{"text":"Turnips for the cafe: 3 turnips   300 Z","action":"request_crop","disabled":state.items.turnips<3 or "crop" in state.claimed},{"text":"Fishing delivery: 2 fish   160 Z","action":"request_fish","disabled":state.items.fish<2 or "fish" in state.claimed},{"text":"Safe ruins: defeat 5 bots   250 Z","action":"request_bots","disabled":state.enemies_today<5 or "bots" in state.claimed}])
+
+func open_home() -> void:
+	ui.menu("ABOARD THE FLUTTER","Day %d, %02d:%02d. Your home, even while her engines are grounded."%[state.day,int(state.minutes)/60,int(state.minutes)%60],[{"text":"Sleep until tomorrow","action":"sleep_now"},{"text":"Save adventure","action":"save"},{"text":"Check the Flutter systems","action":"roll_story"}])
+
+func sleep_now() -> void:
+	var result: Dictionary=state.next_day();state.save_game()
+	build_area("surface",1,Vector2(350,781))
+	ui.summary_screen("DAY %d ON KATTELOX"%state.day,["Health and energy restored. Adventure saved.","%d crops grew overnight."%result.grown,"Rain waters your garden today." if result.rain else "A clear morning. The garden needs water."])
+
+func execute_choice(action: String) -> void:
+	audio.effect("select")
+	if action.begins_with("dig_"): travel("ruins",int(action.trim_prefix("dig_")),Vector2(480,598));return
+	if action.begins_with("upgrade_"): upgrade(action.trim_prefix("upgrade_"));return
+	match action:
+		"new": start_new()
+		"continue": continue_game()
+		"resume": resume_game()
+		"title": state.save_game();mode="title";build_area("surface",1,Vector2(350,781));ui.title_screen()
+		"roll_story": roll_story()
+		"workshop": open_workshop()
+		"greet_roll":
+			if int(state.friendship.Roll)>=6 and not "roll_gift" in state.claimed:
+				state.items.seeds+=3;state.claimed.append("roll_gift");state.save_game()
+				dialogue("Roll",["You've made Kattelox feel like home. I picked up three seeds for the garden. They're yours, MegaMan!","Don't forget to take a break. You're allowed to enjoy the island too."])
+			else: dialogue("Roll",["It's funny. Before we crashed, I only wanted to leave. Now I look forward to the little things here.","Don't forget to take a break, MegaMan. You're allowed to enjoy the island too."])
+		"sleep_now": sleep_now()
+		"save": toast("Adventure saved." if state.save_game() else "Could not save your adventure.");resume_game()
+		"buy_seeds": purchase("seeds",6,90)
+		"buy_heal": purchase("heal",1,100)
+		"buy_scrap": purchase("scrap",4,180)
+		"lunch","fish_lunch":
+			if action=="lunch" and state.zenny>=60: state.zenny-=60
+			elif action=="fish_lunch" and state.items.fish>=1: state.items.fish-=1
+			else: return
+			state.health=state.max_health();state.energy=100;state.minutes+=30
+			resume_game();toast("A good lunch. Health and energy restored.");state.save_game()
+		"donate":
+			if state.items.relic<1: return
+			state.items.relic-=1;state.museum_donated+=1;state.zenny+=250;state.score+=500
+			audio.effect("item");state.save_game();open_museum()
+		"museum_story": dialogue("Barrell",["Every relic is a little piece of the past. The museum keeps that past safe for everyone on Kattelox."])
+		"request_crop": claim_request("crop","turnips",3,300)
+		"request_fish": claim_request("fish","fish",2,160)
+		"request_bots":
+			if state.enemies_today>=5 and not "bots" in state.claimed: claim_request("bots","scrap",0,250)
+		"music": state.music=not state.music;audio.refresh();ui.pause_screen("Options");state.save_game()
+		"sound": state.sound=not state.sound;ui.pause_screen("Options");state.save_game()
+		"motion": state.reduced_motion=not state.reduced_motion;ui.pause_screen("Options");state.save_game()
+
+func purchase(item: String, quantity: int, cost: int) -> void:
+	if state.zenny<cost: return
+	state.zenny-=cost;state.items[item]+=quantity;audio.effect("item");state.save_game();open_shop()
+
+func claim_request(request: String, item: String, quantity: int, reward: int) -> void:
+	if request in state.claimed or state.items[item]<quantity: return
+	state.items[item]-=quantity;state.claimed.append(request);state.zenny+=reward;state.score+=200
+	audio.effect("item");state.save_game();open_board()
+
+func sell_produce() -> void:
+	var total: int=state.items.turnips*80+state.items.fish*55
+	if total<=0: toast("Bring turnips or fish. Turnips sell for 80 Z, fish for 55 Z.");return
+	var count: int=state.items.turnips+state.items.fish
+	state.items.turnips=0;state.items.fish=0;state.zenny+=total;state.score+=count*20;last_sell=total
+	audio.effect("item");state.save_game();toast("Shipped %d items for %d Zenny."%[count,total])
+
+func farm(index: int, selected: int = -1) -> void:
+	if index<0 or index>=state.crops.size(): return
+	var crop: Dictionary=state.crops[index]
+	if state.energy<2: toast("Low energy. Take a breather, visit Data or eat at the cafe.");return
+	var at: Vector2=world.crop_nodes[index].pos
+	if int(crop.stage)==3:
+		state.items.turnips+=1;state.harvested+=1;state.score+=30;crop.stage=-1;crop.watered=false
+		audio.effect("item");floating(at+Vector2(0,-32),"+1 turnip",Color("fff2b8"))
+	elif not bool(crop.tilled) and selected in [-1,1]: crop.tilled=true;audio.effect("plant")
+	elif int(crop.stage)<0 and bool(crop.tilled) and selected in [-1,3]:
+		if state.items.seeds<=0: toast("Out of seeds. The Junk Shop sells six for 90 Zenny.");return
+		state.items.seeds-=1;crop.stage=0;crop.watered=state.day%4==0;audio.effect("plant")
+	elif int(crop.stage)>=0 and not bool(crop.watered) and selected in [-1,2]:
+		crop.watered=true;audio.effect("water");burst(at,Color("9bd7d5"),7,25)
+	else: toast("This crop is watered. It will grow when you sleep." if bool(crop.watered) else "Use the hoe, seeds, then watering can. E does the next step.");return
+	state.energy-=2;world.update_crops()
+
+func use_tool() -> void:
+	if area!="surface": return
+	var target: Vector2=player.position+player.facing*24
+	var nearest: int=-1;var distance: float=35
+	for i in range(world.crop_nodes.size()):
+		var d: float=world.crop_nodes[i].pos.distance_to(target)
+		if d<distance: distance=d;nearest=i
+	if nearest>=0: farm(nearest,tool)
+	else: toast("Use garden tools on the plots beside the Flutter.")
+
+func use_heal() -> void:
+	if state.items.heal<=0: toast("No energy bottles. Visit the Junk Shop.");return
+	if state.health>=state.max_health() and state.energy>=100: return
+	state.items.heal-=1;state.health=mini(state.max_health(),state.health+55);state.energy=minf(100,state.energy+45)
+	audio.effect("item");toast("Energy bottle: +55 health, +45 energy.");state.save_game()
+
+func knock_out(exhausted: bool = false) -> void:
+	if mode!="game": return
+	var loss: int=mini(state.zenny,int(state.zenny*0.08))
+	state.zenny-=loss;state.health=state.max_health();state.energy=100
+	if exhausted: state.next_day()
+	else: state.minutes=minf(1380,state.minutes+60)
+	build_area("surface",1,Vector2(350,781))
+	dialogue("Roll",["Data brought you back to the Flutter. You're safe, MegaMan.","We used %d Zenny for repairs. Your recovered parts are still here. Take an energy bottle next time, and dash through an attack if you need to!"%loss])
+	state.save_game()
+
+func resume_game() -> void:
+	mode="game";ui.clear_overlay()
+
+func objective() -> String:
+	if not state.quest_started: return "Talk to Roll beside the Flutter"
+	if state.repair==0: return "Bring the Servo Motor to Roll" if state.items.servo>0 else "Find the Servo Motor on ruin level 1"
+	if state.repair==1: return "Bring the Ancient Circuit to Roll" if state.items.circuit>0 else "Find the Ancient Circuit on ruin level 2"
+	if state.repair==2:
+		if not state.tron_defeated: return "Meet Tron Bonne in the town plaza"
+		return "Bring the Large Refractor to Roll" if state.items.refractor>0 else "Recover the Refractor on ruin level 3"
+	return "Flutter restored. Make Kattelox your home"
+
+func location_name() -> String:
+	if area=="cabin": return "Flutter / Crew Cabin"
+	return "Kattelox Island" if area=="surface" else ("Bonne Showdown" if area=="bonne" else "Northern Ruins / Level %d"%floor_number)
+
+func rank_name() -> String:
+	if state.score>=15000: return "Master Digger"
+	if state.score>=6000: return "Class A Digger"
+	if state.score>=2000: return "Class B Digger"
+	return "Apprentice Digger"
+
+func toast(text: String) -> void:
+	notice=text;notice_time=3.5
+
+func radio(person: String, text: String) -> void:
+	toast("%s: %s"%[person,text])
+
+func particle(at: Vector2, colour: Color, life: float, velocity: Vector2) -> void:
+	if effects.size()>160: return
+	effects.append({"pos":at,"vel":velocity,"life":life,"max":life,"colour":colour,"text":""})
+
+func burst(at: Vector2, colour: Color, count: int, force: float) -> void:
+	for i in range(count): particle(at,colour,randf_range(0.2,0.55),Vector2(randf_range(-force,force),randf_range(-force,force)))
+
+func floating(at: Vector2, text: String, colour: Color) -> void:
+	effects.append({"pos":at,"vel":Vector2(0,-24),"life":0.8,"max":0.8,"colour":colour,"text":text})
+
+func update_effects(delta: float) -> void:
+	for i in range(effects.size()-1,-1,-1):
+		effects[i].life-=delta;effects[i].pos+=effects[i].vel*delta
+		if effects[i].life<=0: effects.remove_at(i)
+
+func draw_effects() -> void:
+	for effect in effects:
+		var colour: Color=effect.colour;colour.a=minf(1,effect.life/effect.max*2)
+		if effect.text=="": effect_layer.draw_rect(Rect2(effect.pos,Vector2(3,3)),colour)
+		else: effect_layer.draw_string(ThemeDB.fallback_font,effect.pos,effect.text,HORIZONTAL_ALIGNMENT_CENTER,-1,14,colour)

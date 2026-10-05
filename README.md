@@ -1,106 +1,80 @@
 # Mega Man Legends: Kattelox Days
 
-A non-commercial **Mega Man Legends** fan-game prototype that combines the broad story structure and lore of **Mega Man Legends 1** with a more relaxed, top-down life-sim rhythm inspired by games like Stardew Valley.
+A playable, non-commercial Mega Man Legends fan game with a Stardew-inspired daily rhythm. The Flutter crash-lands on Kattelox, becomes your home, and needs three salvaged systems to fly again. Build a life on the surface, earn Zenny, upgrade your Buster with Roll, explore the northern ruins and face the Bonnes.
 
-The core idea is simple: **the Flutter is your home from the beginning**. It crash-lands on Kattelox Island, and MegaMan and Roll have to live there while repairing it. Daily life in town, relationships, scavenging, Digger work, Refractors, ruins, Reaverbots, the Bonnes, and Flutter repairs all feed into the same progression loop.
+**Version 0.2.0: the first chapter is playable from the crash to the ending, with continued town life and a Deep Dig challenge after the repairs.**
 
-## Current prototype
+![Kattelox town](docs/screenshots/town.png)
 
-The first playable vertical slice includes:
+## Play on Windows
 
-- MegaMan movement and four-direction Buster combat
-- Kattelox surface area with a damaged Flutter, City Hall, Junk Shop, Museum, Cafe, Police Station, shoreline and ruin entrance
-- Roll, Data, Barrell, Mayor Amelia and Tron Bonne
-- time of day and day counter
-- simple daily NPC schedules
-- friendship counters
-- Zenny rewards
-- a hand-built Kattelox ruin layout
-- Reaverbot encounters
-- Servo Motor and Ancient Circuit salvage
-- a large Refractor objective
-- Bonne/Servbot ambush event
-- staged Flutter repairs at 34%, 67% and 100%
-- sleeping aboard the Flutter to advance the day
-- save-on-sleep to `user://kattelox_days_save.json`
-- a complete prototype arc from the crash to making the Flutter flightworthy again
+Download `KatteloxDays-Windows` from the latest successful [build workflow](https://github.com/myplexscripts/mml/actions/workflows/godot-check.yml), extract the ZIP and open `KatteloxDays.exe`. The exported game includes its assets and does not require Godot, Python or Docker.
 
-This is intentionally a **prototype**, not an attempt to duplicate MML1 scene-for-scene. The story beats, characters, terminology and world logic are based on the source game, while the daily-life structure and top-down presentation are an original reinterpretation.
+To run the source, open `project.godot` with **Godot 4.7.2** and press F5. The title screen offers a new adventure or Continue. New Adventure asks before replacing an existing save.
 
-## Engine
+## What is playable
 
-- **Godot 4.7.x**
-- GDScript
-- 640x360 internal canvas
-- nearest-neighbour texture defaults
-- GL compatibility renderer for broad Windows hardware support
+- A detailed pixel-art Kattelox town with the Flutter, crew cabin, City Hall, Junk Shop, museum, cafe, police station, homes, garden, request board, shoreline and ruin lift.
+- Recognisable MegaMan animation, Roll, Data, Barrell, Amelia, Tron and the Junk Shop Man. Town characters follow daily schedules; daily conversations improve friendship and unlock Roll's seed gifts.
+- Real CharacterBody2D collision and sliding, wall-aware enemy navigation, swept projectile collision, knockback, dash invulnerability, attack telegraphs, lock-on, health, armour, healing and defeat recovery.
+- Three distinct ruin layouts, Horokko, Zakobon, Sharukurusu, guardians, a Bonne mech showdown, Servbots, guarded caches and a complete Flutter repair campaign.
+- Buster power, rapid-fire and armour upgrades; Zenny and scrap drops with gravity, bounce and collection; score, combos, Digger ranks and best-dig tracking.
+- Twelve farm plots with hoeing, seeds, watering and three watered nights of growth; turnip harvesting, fishing timing challenges, shipping, daily requests, a relic museum and cafe or galley meals.
+- Day/night lighting, rainy days, restored energy after sleep, a daily summary and persistent progress.
+- Legends-inspired blue and gold menus, segmented health, equipment, a location map, objective journal and the animated scrolling pause background. Options include music, sound effects and reduced motion.
+- Three original looping music tracks, original garden/UI Foley and attributed Legends sound effects.
 
-No Docker is needed.
-
-## Run it
-
-1. Install Godot 4.7.x for Windows.
-2. Clone or download this repository.
-3. Open `project.godot` in Godot.
-4. Press **F5** or click Run Project.
-
-The project opens directly into the prototype.
+![Flutter home](docs/screenshots/flutter.png)
 
 ## Controls
 
-| Action | Key |
-| --- | --- |
-| Move | WASD or Arrow Keys |
-| Talk / interact | E, F or Space |
-| Fire Mega Buster | J |
-| Dash | Shift |
-| Sleep aboard Flutter | R |
-| Advance dialogue | E, F, Space or Enter |
-| Quit | Escape |
+| Action | Keyboard / mouse | Gamepad |
+| --- | --- | --- |
+| Move | WASD / arrows | Left stick |
+| Interact / advance dialogue | E, F, Space / Enter in menus | A |
+| Fire Buster | Hold J / left click to aim | X |
+| Lock onto a visible enemy | Hold K / right click | Left shoulder |
+| Dash | Shift | Right shoulder |
+| Use an energy bottle | Q | Y |
+| Tools | 1 Buster, 2 hoe, 3 watering can, 4 seeds; T cycles | Click tool buttons |
+| Pause / return | Esc / MENU | Start |
+| Map / equipment | M / Tab | Pause tabs |
+| Sleep near or inside the Flutter | R / interact with bunk | Interact with bunk |
+| Fullscreen | F11 | Window controls |
 
-## Prototype progression
+E also handles the garden's next step: till an empty plot, plant a seed, water it, or harvest a mature turnip. In combat areas the Buster equips automatically. Hold lock-on and fire while moving; dash through telegraphed attacks. Gardens and town services are usable from the first day.
 
-1. Talk to Roll beside the crashed Flutter.
-2. Enter the northern Kattelox ruins.
-3. Recover the Servo Motor.
-4. Return it to Roll to repair the first Flutter system.
-5. Recover the Ancient Circuit.
-6. Return it to Roll to restore navigation systems.
-7. Deal with Tron and the Servbot ambush in Central Kattelox.
-8. Return to the ruins and recover the large Refractor.
-9. Bring it to Roll to restore the Flutter's main engine.
+## The repair chapter
 
-## Design rules
+1. Speak to Roll beside the Flutter to receive the repair plan.
+2. Enter the northern lift and clear the stabilizer chambers. Recover the Servo Motor and bring it to Roll.
+3. Explore the navigation vault, defeat its guardian and return the Ancient Circuit.
+4. Meet Tron in the plaza and defeat the Bonne machine.
+5. Enter the Refractor core, defeat the final guardian and recover the Large Refractor.
+6. Deliver it to Roll for the ending. Keep playing in town or try a Deep Dig run.
 
-The project should continue following these rules:
+Taking a break to garden, fish, help neighbours and buy upgrades makes the next dig easier. Defeat costs a small amount of Zenny and returns you safely home; repair parts stay with you.
 
-- **The Flutter is always MegaMan's home.** Do not replace it with a generic farmhouse.
-- Surface life should feel warm, human and lived-in. Ruins should feel ancient, mechanical and uncanny.
-- Refractors are important infrastructure and treasure, not generic crystals.
-- Roll is the mechanical heart of progression. Salvaged parts should become repairs, upgrades and special weapons through her.
-- Reaverbots should have varied silhouettes and body plans rather than all being humanoid robots.
-- The Bonnes should remain colourful, funny and mechanically inventive without losing their threat.
-- Kattelox should feel like a real community with schedules, shops and reasons to spend time above ground.
-- The game can borrow the daily-life pacing of Stardew Valley, but it should always read as **Mega Man Legends first**.
+## Saves
 
-## Art direction
+Version 2 saves use Godot's `user://kattelox_days_v2.json`. Windows stores this in the game's folder under `%APPDATA%/Godot/app_userdata/`. Data, sleep, the pause menu, area travel, story milestones and the 45-second autosave all save progress. Continue restores equipment, inventory, crops, friendship, daily requests and repair progress, and starts you safely beside the Flutter.
 
-The current build uses procedural placeholder pixel art so the game is immediately playable without external assets.
+This version uses a separate save from the older prototype. Its old save is preserved. Browser saves belong to the browser and origin where the Web build runs.
 
-The intended direction is:
+## Build and validation
 
-- top-down pixel art
-- cleaner and more detailed than the current placeholders
-- readable 16px/32px tile language similar to classic life sims
-- MML's actual colours, silhouettes and machinery
-- bright surface world, darker geometric ruins
-- chunky machinery, visible rivets, panels, pipes and exaggerated shapes
-- no generic fantasy RPG art
+Godot 4.7.2, GDScript, a 640 x 360 logical canvas, nearest-neighbour pixel art and the GL compatibility renderer. Windows is the main target; a single-threaded WebGL 2 build is provided for browser testing.
 
-A public-domain Mega Man Legends fangame sprite source has also been identified for later asset replacement. See `docs/ASSETS.md`.
+```sh
+python tools/check_game.py --godot godot --export
+```
 
-## Fan project note
+The checked-in workflow imports and parses the project, runs a main-scene smoke check, executes gameplay regression tests, plays the Bonne fight using ordinary movement/fire inputs, and exports Windows and Web artifacts. Runtime errors fail validation even if Godot returns exit code zero. See [validation](docs/VALIDATION.md) and [asset provenance](docs/ASSETS.md).
 
-This is an unofficial fan project. Mega Man, Mega Man Legends, MegaMan Volnutt, Roll Caskett, Data, Barrell Caskett, Tron Bonne, the Servbots, Kattelox, the Flutter and related names and concepts belong to Capcom.
+Art and music are already bundled. `tools/build_art.py` (Pillow) and `tools/build_audio.py` (NumPy and ffmpeg) rebuild the original/derived assets; they are development tools only.
 
-The repository should not imply endorsement by Capcom. Any third-party or ripped game assets should be tracked separately with their source and reuse status before being committed.
+![Legends-inspired pause screen](docs/screenshots/pause.png)
+
+## Credits
+
+Mega Man Legends and its characters, setting and related designs belong to Capcom. This is an unofficial fan project and implies no endorsement. Original Seeteufel the Mighty fan sprites are credited to its authors, and CC0 terrain is by Kenney. Detailed credits and source links are in [ASSETS.md](docs/ASSETS.md).
