@@ -6,6 +6,7 @@ var dash_direction := Vector2.DOWN
 var dash_time: float = 0.0
 var dash_cooldown: float = 0.0
 var shot_cooldown: float = 0.0
+var grenade_cooldown: float = 0.0
 var invincible: float = 0.0
 var walk_time: float = 0.0
 var step_time: float = 0.0
@@ -14,7 +15,7 @@ var aim_target
 
 func _ready() -> void:
 	collision_layer = 2
-	collision_mask = 1 | 8
+	collision_mask = 1 | 8 | 16
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
 	circle.radius = 8
@@ -32,6 +33,7 @@ func _physics_process(delta: float) -> void:
 	if not game.active():
 		velocity = Vector2.ZERO
 		return
+	grenade_cooldown = maxf(0,grenade_cooldown-delta)
 	shot_cooldown = maxf(0,shot_cooldown-delta)
 	dash_cooldown = maxf(0,dash_cooldown-delta)
 	invincible = maxf(0,invincible-delta)
@@ -70,6 +72,7 @@ func _physics_process(delta: float) -> void:
 		fire(Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
 	elif Input.is_action_just_pressed("fire") and firing_input:
 		game.use_tool()
+	if Input.is_action_just_pressed("special"): special_fire()
 	if Input.is_action_just_pressed("heal"): game.use_heal()
 	var firing: bool = shot_cooldown > 0.1 and game.tool == 0
 	var col := int(walk_time*9)%4 if move.length() > 0.1 else 0
@@ -89,6 +92,16 @@ func fire(mouse: bool = false) -> void:
 	game.shoot(global_position+direction*12, direction*390, false, 10+game.state.power*6)
 	game.audio.effect("buster",randf_range(0.94,1.03))
 	game.burst(global_position+direction*17+Vector2(0,-8),Color("f8e8a4"),3,25)
+
+func special_fire() -> void:
+	if not game.active() or grenade_cooldown>0: return
+	if not game.state.grenade_unlocked: game.toast("Find the weapon plans in the eastern ruins, then see Roll.");return
+	if game.state.energy<18: game.toast("Grenade Arm needs 18 energy. Rest or use a bottle.");return
+	var direction: Vector2=facing
+	if is_instance_valid(aim_target): direction=position.direction_to(aim_target.position)
+	game.state.energy-=18;grenade_cooldown=1.2
+	var grenade=game.Grenade.new();grenade.game=game;grenade.position=position+direction*13;grenade.motion=direction*180
+	game.world.entities.add_child(grenade);game.audio.effect("buster",.65)
 
 func hurt(damage: int, from: Vector2) -> void:
 	if invincible > 0 or dash_time > 0 or not game.active(): return

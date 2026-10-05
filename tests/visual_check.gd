@@ -12,7 +12,11 @@ func capture(name: String) -> void:
 	for node in game.ui.overlay.find_children("*","Control",true,false):
 		if node is Button and node.visible:
 			var bounds: Rect2=node.get_global_rect()
-			if bounds.end.y>360.5 or bounds.position.y<0:
+			var ancestor=node.get_parent()
+			while ancestor is Control:
+				if ancestor.clip_contents: bounds=bounds.intersection(ancestor.get_global_rect())
+				ancestor=ancestor.get_parent()
+			if bounds.has_area() and (bounds.end.y>360.5 or bounds.position.y<0):
 				push_error("Clipped control: "+node.name+" "+str(bounds))
 
 func run() -> void:
@@ -30,9 +34,16 @@ func run() -> void:
 	game.open_shop();await capture("shop")
 	game.open_home();await capture("home")
 	game.resume_game();game.build_area("cabin",1,Vector2(320,375));await capture("cabin")
+	for area in ["shop","museum","cafe","hall"]:
+		game.resume_game();game.state.museum_donated=3
+		game.build_area(area,1,Vector2(320,335));await capture("interior_"+area)
+	game.resume_game();game.build_area("surface",1,Vector2(184,845))
+	for i in range(12): game.state.crops[i]={"tilled":true,"stage":3 if i%3==0 else (4 if i%3==1 else 5),"watered":true,"kind":["turnip","tomato","sunflower"][i%3]}
+	game.world.update_crops();await capture("garden")
+	game.open_seeds();await capture("seed_menu")
 	game.resume_game();game.state.quest_started=true
 	game.build_area("ruins",3,Vector2(480,329));await wait_frames(15)
-	await capture("ruins")
+	game.state.grenade_unlocked=true;await capture("ruins")
 	game.ui.pause_screen("Map");await capture("ruin_map")
 	game.resume_game();game.build_area("bonne",1,Vector2(320,350));await wait_frames(10)
 	await capture("bonne")

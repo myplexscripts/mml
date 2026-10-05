@@ -39,3 +39,7 @@ python tools/build_audio.py
 The art generator reads the three preserved source PNGs and uses Pillow. The audio generator uses NumPy and ffmpeg. Seeded generation makes the outputs reproducible. Runtime builds require neither tool nor any network access.
 
 Mega Man, Mega Man Legends, MegaMan Volnutt, Roll Caskett, Data, Barrell Caskett, Tron Bonne, Servbots, Kattelox and the Flutter belong to Capcom. This repository is a non-commercial, unofficial fan project.
+
+## Version 0.3 expansion
+
+The tomato and sunflower sprites, seedlings, shop counter, stock shelves, cafe tables, plant pots, museum display cases, salvage crates and weapon plans are original pixel art from `tools/build_art.py`. They add no new third-party licences. The Grenade Arm is a Mega Man Legends-inspired mechanic; the [Legends Station special-weapon reference](https://www.legends-station.com/?id=mml1-special-weapons) informed the design. Projectile visuals and explosion particles are drawn by the game. Existing credited Refractor shard graphics and sound effects are reused.

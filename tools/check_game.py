@@ -16,7 +16,7 @@ def run(godot, name, arguments, timeout=120, expected=None):
     print(f"Checking {name}...", flush=True)
     with tempfile.TemporaryDirectory(prefix="kattelox-check-") as user_data:
         env = dict(os.environ)
-        if name in ["startup", "gameplay", "combat"]:
+        if name in ["startup", "gameplay", "combat", "expansion"]:
             env["XDG_DATA_HOME"] = user_data
         result = subprocess.run(
             [godot, "--headless", "--path", str(ROOT), *arguments],
@@ -43,6 +43,7 @@ def main():
     run(options.godot, "import", ["--editor", "--quit"])
     run(options.godot, "startup", ["--script", "tests/startup_test.gd"], expected="STARTUP: PASS")
     run(options.godot, "gameplay", ["--script", "tests/gameplay_test.gd"], expected="0 failed")
+    run(options.godot, "expansion", ["--script", "tests/expansion_test.gd"], expected="0 failed")
     run(options.godot, "combat", ["--script", "tests/combat_playtest.gd"], expected="COMBAT PLAYTEST: PASS")
     if options.export:
         for preset, folder, filename in [("Windows Desktop", "windows", "KatteloxDays.exe"), ("Web", "web", "index.html")]:

@@ -43,9 +43,9 @@ func _ready() -> void:
 		button.icon=load("res://assets/items/%s.png"%names[i])
 		button.expand_icon=true
 		button.add_theme_constant_override("icon_max_width",28)
-		button.tooltip_text=["1: Mega Buster","2: Hoe","3: Watering Can","4: Turnip Seeds"][i]
+		button.tooltip_text=["1: Mega Buster","2: Hoe","3: Watering Can","4: Selected Seeds / C chooses crop"][i]
 		button.name="Tool%d"%(i+1)
-		button.pressed.connect(func(): game.tool=i)
+		button.pressed.connect(func(): game.open_seeds() if i==3 and game.tool==3 else select_tool(i))
 		hotbar.add_child(button);tool_buttons.append(button)
 	var menu_button:=button_for("MENU",func(): game.ui.pause_screen("Status"))
 	menu_button.position=Vector2(548,305);menu_button.size=Vector2(80,44);menu_button.name="PauseButton"
@@ -66,6 +66,9 @@ func _ready() -> void:
 	notice_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(notice_label)
 	overlay=Control.new();overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(overlay)
+
+func select_tool(index: int) -> void:
+	game.tool=index
 
 func make_style(colour: Color, border: Color = Color("597c94")) -> StyleBoxFlat:
 	var style:=StyleBoxFlat.new();style.bg_color=colour
@@ -247,19 +250,21 @@ func pause_screen(tab: String = "Status") -> void:
 			box.add_child(text_label(game.objective(),14,GOLD))
 		"Equipment":
 			box.add_child(text_label("Buster Power %d   Rapid Fire %d   Armour %d"%[game.state.power,game.state.rapid,game.state.armour],16,GOLD))
-			var grid:=GridContainer.new();grid.columns=4;grid.add_theme_constant_override("h_separation",20);box.add_child(grid)
-			for entry in [["scrap","Scrap"],["seeds","Seeds"],["turnips","Turnips"],["fish","Fish"],["heal","Bottles"],["relic","Relics"],["servo","Servo"],["circuit","Circuit"]]:
-				grid.add_child(text_label("%s  %d"%[entry[1],game.state.items[entry[0]]]))
+			var scroll:=ScrollContainer.new();scroll.custom_minimum_size.y=70;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;box.add_child(scroll)
+			var grid:=GridContainer.new();grid.columns=4;grid.custom_minimum_size.x=540;grid.add_theme_constant_override("h_separation",16);grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(grid)
+			for entry in [["scrap","Scrap"],["shard","Shards"],["heal","Bottles"],["fish","Fish"],["seeds","Turnip seeds"],["tomato_seeds","Tomato seeds"],["sunflower_seeds","Flower seeds"],["turnips","Turnips"],["tomatoes","Tomatoes"],["sunflowers","Flowers"],["relic","Relics"],["servo","Servo"],["circuit","Circuit"],["refractor","Refractor"]]:
+				var item_label:=text_label("%s  %d"%[entry[1],game.state.items[entry[0]]],13)
+				item_label.autowrap_mode=TextServer.AUTOWRAP_OFF;grid.add_child(item_label)
 			box.add_child(text_label("Damage %d   Shot interval %.2fs   Max health %d"%[10+game.state.power*6,maxf(0.13,0.3-game.state.rapid*.055),game.state.max_health()]))
-			box.add_child(text_label("Roll upgrades equipment with Zenny and salvaged scrap."))
+			box.add_child(text_label("Grenade Arm: L / B (18 energy)" if game.state.grenade_unlocked else "Weapon plans: eastern ruin chamber."))
 		"Map":
 			var map:=Control.new();map.custom_minimum_size=Vector2(560,142);box.add_child(map)
 			map.draw.connect(func(): draw_map(map));map.queue_redraw()
 		"Journal":
 			box.add_child(text_label(game.objective(),18,GOLD))
-			box.add_child(text_label("Garden: E tills, plants, waters and harvests. Grow for three watered nights."))
+			box.add_child(text_label("Garden: E farms, C selects crops. Tomatoes regrow. Ship or gift your harvest."))
 			box.add_child(text_label("Town: ship produce, finish requests, donate relics and meet neighbours."))
-			box.add_child(text_label("Combat: J / click fires, K locks on, Shift dashes, Q heals. E opens caches."))
+			box.add_child(text_label("Combat: J fires, K locks, L grenades, Shift dashes, Q heals. E opens caches."))
 		"Options":
 			for entry in [["Music: "+("On" if game.state.music else "Off"),"music"],["Sound effects: "+("On" if game.state.sound else "Off"),"sound"],["Reduced motion: "+("On" if game.state.reduced_motion else "Off"),"motion"]]:
 				var action: String=entry[1];var button:=button_for(entry[0],func(): game.execute_choice(action))

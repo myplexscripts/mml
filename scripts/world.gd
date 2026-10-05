@@ -1,5 +1,7 @@
 extends Node2D
 ## World visuals and navigation share the same authored collision geometry.
+const Catalog = preload("res://scripts/catalog.gd")
+const Salvage = preload("res://scripts/salvage.gd")
 var game
 var area: String = "surface"
 var floor_number: int = 1
@@ -24,6 +26,7 @@ func _ready() -> void:
 	if area=="surface": build_surface()
 	elif area=="bonne": build_bonne()
 	elif area=="cabin": build_cabin()
+	elif area in ["shop","museum","cafe","hall"]: build_interior()
 	else: build_ruin()
 	build_navigation()
 	queue_redraw()
@@ -42,7 +45,8 @@ func prop(name: String, at: Vector2, scale_factor: float = 1.0) -> Sprite2D:
 	sprite.position=at
 	sprite.offset=Vector2(0,-sprite.texture.get_height()*0.5+3)
 	sprite.scale=Vector2(scale_factor,scale_factor)
-	entities.add_child(sprite)
+	if name=="rug": add_child(sprite);move_child(sprite,0)
+	else: entities.add_child(sprite)
 	return sprite
 
 func solid(rect: Rect2) -> void:
@@ -115,7 +119,7 @@ func build_surface() -> void:
 			var soil:=Sprite2D.new()
 			soil.position=at
 			soil.texture=textures.soil
-			add_child(soil)
+			add_child(soil);move_child(soil,0)
 			var crop_sprite:=Sprite2D.new()
 			crop_sprite.position=at+Vector2(0,-10)
 			entities.add_child(crop_sprite)
@@ -138,6 +142,16 @@ func build_ruin() -> void:
 		rooms.append(Rect2(64,128,192,160));rooms.append(Rect2(128,256,64,128))
 	elif floor_number>=3:
 		rooms[4]=Rect2(128,64,704,160)
+	# Deep levels rotate three connected side-chamber plans. The main lift and
+	# northern guardian vault stay readable while optional routes change.
+	if floor_number>=4:
+		var variant: int=(floor_number+game.state.day)%3
+		if variant==0:
+			rooms.append(Rect2(64,128,224,160));rooms.append(Rect2(160,256,64,128))
+		elif variant==1:
+			rooms.append(Rect2(672,128,224,160));rooms.append(Rect2(736,256,64,128))
+		else:
+			rooms.append(Rect2(64,224,832,64));rooms.append(Rect2(160,256,64,128));rooms.append(Rect2(736,256,64,128))
 	for y in range(22):
 		for x in range(30):
 			var p:=Vector2(x*32+16,y*32+16)
@@ -167,7 +181,7 @@ func build_ruin() -> void:
 		entities.add_child(treasure)
 		interactables.append({"name":"%s Cache"%part.capitalize(),"pos":part_position,"action":"treasure","part":part,"sprite":treasure})
 	for p in [Vector2(183,522),Vector2(397,375),Vector2(533,331),Vector2(793,420),Vector2(821,550)]:
-		game.spawn_enemy("horokko" if int(p.x)%2==1 else "zakobon",p,25+floor_number*8)
+		game.spawn_enemy("zakobon" if p.x in [397.0,793.0] else "horokko",p,25+floor_number*8)
 	game.spawn_enemy("zakobon",Vector2(736,514),22+floor_number*8)
 	game.spawn_enemy("sharukurusu",Vector2(597,144),28+floor_number*12)
 	if floor_number==2: game.spawn_enemy("zakobon",Vector2(166,203),44)
@@ -176,6 +190,55 @@ func build_ruin() -> void:
 		game.spawn_enemy("guardian",Vector2(450,157),120 if floor_number==2 else 230+(floor_number-3)*40,true)
 	else:
 		game.spawn_enemy("horokko",Vector2(211,399),40)
+	if not game.state.blueprint:
+		var plans:=prop("weapon_plans",Vector2(835,475))
+		interactables.append({"name":"Weapon Plans","pos":Vector2(835,483),"action":"blueprint","sprite":plans})
+	var crate_positions: Array=[Vector2(137,565),Vector2(559,392),Vector2(849,552),Vector2(314,147)]
+	if floor_number>=4:
+		crate_positions.append(Vector2(186,245) if (floor_number+game.state.day)%3!=1 else Vector2(810,245))
+	for i in range(crate_positions.size()):
+		var id: String="salvage_%d_%d"%[floor_number,i]
+		if id in game.state.claimed: continue
+		var crate=Salvage.new();crate.game=game;crate.position=crate_positions[i];crate.claim_id=id
+		entities.add_child(crate)
+
+func build_interior() -> void:
+	size=Vector2(640,480)
+	solid(Rect2(0,0,640,156));solid(Rect2(0,420,640,60))
+	solid(Rect2(0,0,72,480));solid(Rect2(568,0,72,480))
+	var exits: Dictionary={"shop":Vector2(560,724),"museum":Vector2(1032,713),"cafe":Vector2(892,833),"hall":Vector2(800,464)}
+	interactables=[{"name":"Return to town","pos":Vector2(320,401),"action":"town_exit","return_pos":exits[area]}]
+	prop("rug",Vector2(320,385))
+	var counter:=Vector2(320,252)
+	prop("counter",counter);solid(Rect2(240,225,160,27))
+	interactables.append({"name":{"shop":"Browse stock","museum":"Relic donations","cafe":"Order lunch","hall":"Speak with Amelia"}[area],"pos":Vector2(320,280),"action":area+"_counter"})
+	if area=="shop":
+		for at in [Vector2(134,225),Vector2(506,225)]:
+			prop("shelves",at);solid(Rect2(at+Vector2(-42,-23),Vector2(84,23)))
+		for at in [Vector2(127,362),Vector2(501,357)]:
+			prop("salvage",at);solid(Rect2(at+Vector2(-14,-20),Vector2(28,20)))
+	elif area=="cafe":
+		for at in [Vector2(152,320),Vector2(487,320)]:
+			prop("cafe_table",at);solid(Rect2(at+Vector2(-27,-23),Vector2(54,23)))
+		for at in [Vector2(146,224),Vector2(487,224)]: prop("plant_pot",at)
+	elif area=="museum":
+		for i in range(4):
+			var at:=Vector2(136+(i%2)*368,260+int(i/2)*108)
+			var display:=prop("display_case",at);solid(Rect2(at+Vector2(-26,-19),Vector2(52,19)))
+			if game.state.museum_donated>i:
+				var relic:=Sprite2D.new();relic.texture=preload("res://assets/world/relic_display.png");relic.position=Vector2(0,-38);display.add_child(relic)
+			interactables.append({"name":"Ancient relic exhibit","pos":at+Vector2(0,27),"action":"exhibit"})
+	else:
+		for at in [Vector2(137,235),Vector2(503,235)]: prop("plant_pot",at)
+		prop("board",Vector2(495,348));solid(Rect2(478,323,34,25))
+		interactables.append({"name":"Town requests","pos":Vector2(495,375),"action":"board"})
+		prop("bench",Vector2(145,350));solid(Rect2(126,334,38,16))
+	# Interior people use stationary destinations so they stay behind the desk.
+	if area=="shop": game.spawn_npc("Junk Shop Man","junkman",Vector2(320,218))
+	elif area=="museum": game.spawn_npc("Barrell","barrell",Vector2(430,290))
+	elif area=="hall": game.spawn_npc("Amelia","amelia",Vector2(320,218))
+	for y in range(5,13):
+		for x in range(3,17): floor_cells[Vector2i(x,y)]=true
 
 func build_bonne() -> void:
 	size=Vector2(640,480)
@@ -213,9 +276,11 @@ func update_crops() -> void:
 		crop_nodes[i].soil.visible=bool(data.tilled)
 		crop_nodes[i].soil.texture=textures.soil_wet if bool(data.watered) else textures.soil
 		crop_nodes[i].crop.visible=int(data.stage)>=0
-		if int(data.stage)>=0: crop_nodes[i].crop.texture=load("res://assets/world/crop_%d.png"%int(data.stage))
+		if int(data.stage)>=0: crop_nodes[i].crop.texture=load("res://assets/world/crop_%s_%d.png"%[str(data.get("kind","turnip")),Catalog.visual_stage(data)])
 
 func blocked(at: Vector2) -> bool:
+	for crate in get_tree().get_nodes_in_group("salvage"):
+		if not crate.broken and Rect2(crate.position+Vector2(-14,-17),Vector2(28,20)).grow(8).has_point(at): return true
 	for rect in blockers:
 		if rect.grow(8).has_point(at): return true
 	return false
@@ -268,6 +333,24 @@ func _draw() -> void:
 		for x in range(0,640,32):draw_texture_rect(textures.wall,Rect2(x,0,32,48),false)
 		for y in range(0,480,32):
 			draw_rect(Rect2(4,y,24,24),Color("607c78"));draw_rect(Rect2(612,y,24,24),Color("607c78"))
+	elif area in ["shop","museum","cafe","hall"]:
+		draw_rect(Rect2(Vector2.ZERO,size),Color("233e4a"))
+		for y in range(5,13):
+			for x in range(3,17):
+				var p:=Vector2(x*32,y*32)
+				var tint:=Color("bdac81") if area=="cafe" else Color("829a90")
+				if area=="museum": tint=Color("b5bbac")
+				draw_rect(Rect2(p,Vector2(32,32)),tint)
+				draw_rect(Rect2(p+Vector2(1,1),Vector2(30,30)),Color("607a78"),false,1)
+		for x in range(80,560,32):
+			draw_rect(Rect2(x,104,32,57),Color("ded5af"))
+			draw_rect(Rect2(x+2,108,28,48),Color("b6b694"),false,1)
+		for x in [177,389]:
+			draw_rect(Rect2(x,110,74,42),Color("4c6d79"))
+			draw_rect(Rect2(x+4,114,66,34),Color("8fc6c3"))
+			draw_line(Vector2(x+37,113),Vector2(x+37,149),Color("d7d6b2"),3)
+			draw_line(Vector2(x+4,130),Vector2(x+70,130),Color("d7d6b2"),3)
+		draw_rect(Rect2(294,395,52,21),Color("4c7179"),false,2)
 	elif area=="cabin":
 		draw_rect(Rect2(Vector2.ZERO,size),Color("162f42"))
 		for y in range(5,13):

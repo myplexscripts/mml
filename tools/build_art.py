@@ -340,6 +340,100 @@ def props_items():
             if stage==3:d.ellipse((8,22,25,36),fill='#e7d8b5',outline='#7f8e5b',width=2);d.line((12,25,18,25),fill='#fff1d0',width=2)
         save(im,'world',f'crop_{stage}')
 
+
+def expansion_art():
+    for kind in ['turnip','tomato','sunflower']:
+        for stage in range(4):
+            if kind=='turnip':
+                im=Image.open(A / 'world' / f'crop_{stage}.png')
+            else:
+                im,d=canvas(32,48)
+                if stage>0:
+                    top=32-stage*7
+                    d.line((16,41,16,top),fill='#4e764e',width=3)
+                    for k in range(stage+1):
+                        y=36-k*5
+                        d.polygon([(16,y),(6,y-6),(7,y-10),(16,y-3)],fill='#87a95f',outline='#3d6653')
+                        d.polygon([(16,y),(24,y-9),(28,y-6),(17,y+1)],fill='#648d51',outline='#3d6653')
+                    if stage==3:
+                        if kind=='tomato':
+                            for x,y in [(8,27),(22,32),(18,18)]:
+                                d.ellipse((x-4,y-4,x+4,y+4),fill='#d96b52',outline=INK)
+                                d.line((x-2,y-3,x+1,y-3),fill='#f4b078')
+                        else:
+                            d.ellipse((5,3,27,25),fill='#efc85e',outline='#a18546',width=2)
+                            d.ellipse((11,9,21,19),fill='#765340',outline=INK)
+                            for x,y in [(12,11),(17,12),(15,16)]:d.point((x,y),fill='#d9ac5b')
+            if stage==0:
+                d=ImageDraw.Draw(im)
+                for x,y in [(12,28),(18,30),(21,27)]:d.rectangle((x,y,x+1,y+1),fill='#dcc18a')
+            save(im,'world',f'crop_{kind}_{stage}')
+    for kind,c in [('tomato','#df7055'),('sunflower','#eec658')]:
+        im,d=canvas(32,32)
+        if kind=='tomato':
+            d.ellipse((5,10,27,28),fill=c,outline=INK,width=2)
+            d.polygon([(16,15),(9,5),(16,9),(23,5),(20,14)],fill='#68894e',outline=INK)
+            d.line((8,15,12,13),fill='#f6be84',width=2)
+        else:
+            d.line((16,16,16,31),fill='#678956',width=3)
+            d.ellipse((4,1,28,25),fill=c,outline='#a98942',width=2)
+            d.ellipse((10,7,22,19),fill='#765540',outline=INK,width=2)
+        save(im,'items',kind)
+    im,d=canvas(40,40)
+    d.rectangle((3,8,36,34),fill='#607f83',outline=INK,width=2)
+    d.rectangle((5,10,34,17),fill='#b8b89a',outline=INK)
+    for x in [9,28]:d.rectangle((x,18,x+3,34),fill='#d6c598',outline=INK)
+    d.ellipse((14,20,25,29),fill='#4b7575',outline='#d7e7b9')
+    d.line((18,22,22,25,18,28),fill='#a4c5a2',width=2)
+    save(im,'world','salvage')
+    im,d=canvas(48,40)
+    d.rectangle((4,8,43,33),fill='#b0cec6',outline='#536b77',width=2)
+    for x in range(9,43,7):d.line((x,11,x,30),fill='#94b7b7')
+    for y in [15,23]:d.line((7,y,40,y),fill='#94b7b7')
+    d.rectangle((11,13,29,27),outline='#355b77',width=2);d.ellipse((25,15,36,26),outline='#355b77',width=2)
+    save(im,'world','weapon_plans')
+    im,d=canvas(168,56)
+    d.rectangle((2,22,165,52),fill='#88745a',outline=INK,width=2)
+    d.rectangle((1,15,166,28),fill='#c0aa7b',outline=INK,width=2)
+    d.line((5,18,162,18),fill='#e5cea0',width=2)
+    for x in range(8,162,28):d.rectangle((x,32,x+23,48),outline='#b5a078',width=2)
+    d.rectangle((119,0,149,16),fill='#628280',outline=INK,width=2)
+    d.rectangle((124,4,144,11),fill='#a8cec0');d.line((124,13,142,13),fill=INK)
+    save(im,'world','counter')
+    im,d=canvas(96,92)
+    d.rectangle((3,1,92,85),fill='#856b55',outline=INK,width=3)
+    for y in [9,35,61]:
+        d.rectangle((8,y,87,y+22),fill='#405562')
+        for k,x in enumerate(range(12,82,14)):
+            c=['#9aad8e','#ca9b65','#a6c7c0','#cd8270'][k%4]
+            d.rectangle((x,y+5,x+10,y+19),fill=c,outline=INK)
+            d.rectangle((x+2,y+9,x+8,y+14),fill='#dfd2ac')
+        d.rectangle((6,y+21,89,y+25),fill='#bc9a6a',outline=INK)
+    save(im,'world','shelves')
+    im,d=canvas(68,62)
+    d.rectangle((15,42,22,60),fill='#695744');d.rectangle((46,42,53,60),fill='#695744')
+    d.ellipse((3,10,64,49),fill='#a8805a',outline=INK,width=2)
+    d.ellipse((7,13,60,44),outline='#dcc08e',width=2)
+    for x,y in [(15,22),(41,27)]:
+        d.ellipse((x,y,x+14,y+9),fill='#e5dbc0',outline=INK)
+        d.ellipse((x+4,y+1,x+10,y+5),fill='#966955')
+    save(im,'world','cafe_table')
+    im,d=canvas(64,70)
+    d.rectangle((7,48,56,67),fill='#84938b',outline=INK,width=2)
+    d.polygon([(4,47),(4,13),(59,13),(59,47)],fill='#97babb',outline='#375763',width=2)
+    d.rectangle((9,19,54,42),fill='#b7d0c0',outline='#668a92')
+    d.line((12,20,12,40),fill='#e1e7c9',width=3);d.line((17,20,42,20),fill='#e1e7c9')
+    d.rectangle((22,56,43,61),fill='#dac997')
+    save(im,'world','display_case')
+    relic=Image.open(A/'items/relic.png').resize((22,22),Image.Resampling.NEAREST)
+    save(relic,'world','relic_display')
+    im,d=canvas(40,70)
+    d.polygon([(8,47),(33,47),(28,68),(13,68)],fill='#b57b57',outline=INK,width=2)
+    for dx,dy in [(-10,-9),(11,-18),(-9,-28),(7,-38)]:
+        d.line((20,51,20+dx,36+dy),fill='#466b50',width=3)
+        d.ellipse((12+dx,29+dy,25+dx,43+dy),fill='#7e9c60',outline='#3e6551')
+    save(im,'world','plant_pot')
+
 sprite_sheet();terrain();flutter()
 building('junk_shop',128,'#b86352','JUNK SHOP')
 building('city_hall',160,'#537795','CITY HALL','hall')
@@ -353,5 +447,5 @@ npc('barrell','#d7d6bf','#8d916c','#675a4d')
 npc('amelia','#8c634f','#a5b0c4','#647585')
 npc('junkman','#756150','#768d78','#6a6f80',hat=True)
 npc('data','#87583e','#87583e','#87583e',data=True)
-machines();props_items()
+machines();props_items();expansion_art()
 print('Built animated characters, terrain, Kattelox buildings, Flutter, machinery and icons.')

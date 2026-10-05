@@ -55,7 +55,12 @@ func _draw() -> void:
 	for i in range(4): text_at(str(i+1),Vector2(235+i*50,299),GOLD)
 	text_at("SCORE",Vector2(103,324),Color("a3c7ce"))
 	text_at(str(game.state.score),Vector2(103,346),GOLD)
-	text_at("SEEDS %d"%game.state.items.seeds,Vector2(429,331))
+	var seeds: Dictionary=game.Catalog.crop(game.state.seed_kind)
+	text_at("C  "+str(seeds.name).to_upper(),Vector2(426,320),GOLD)
+	text_at("SEEDS %d"%game.state.items[seeds.seed],Vector2(429,343))
+	if game.state.grenade_unlocked:
+		text_at("L  GRENADE",Vector2(524,160),GOLD,108)
+		text_at("READY" if game.player.grenade_cooldown<=0 and game.state.energy>=18 else "CHARGING",Vector2(524,177),WHITE,108)
 	if game.combo>=2:
 		text_at("%d CHAIN"%game.combo,Vector2(503,113),GOLD)
 		draw_rect(Rect2(502,119,98*game.combo_time/5.0,3),GOLD)

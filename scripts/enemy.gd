@@ -22,7 +22,7 @@ var attack_count: int = 0
 
 func _ready() -> void:
 	collision_layer = 4
-	collision_mask = 1
+	collision_mask = 1 | 16
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
 	circle.radius = 25 if boss else 12

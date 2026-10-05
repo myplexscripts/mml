@@ -20,7 +20,7 @@ func run() -> void:
 	check(not FileAccess.file_exists("res://tools/build_art.py"),"authoring tools are excluded")
 	check(not FileAccess.file_exists("res://tests/gameplay_test.gd"),"tests are excluded")
 	game.mode="game"
-	for area in ["surface","ruins","bonne","cabin"]:
+	for area in ["surface","ruins","bonne","cabin","shop","museum","cafe","hall"]:
 		game.build_area(area,1,Vector2(320,340));await create_timer(.2).timeout
 		check(is_instance_valid(game.world),area+" world starts")
 		check(is_instance_valid(game.audio.music_player.stream),area+" music is bundled")
