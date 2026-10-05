@@ -1,8 +1,25 @@
 # Bundled assets and provenance
 
-The game uses real imported PNG sprites, tiles and Ogg audio. Its runtime no longer draws the old placeholder characters and buildings. Pixel artwork uses a 16/32px terrain language and layered, larger character and machinery sprites.
+Version 0.4 uses textured 3D character and machinery models, original environment geometry, imported terrain textures and Ogg audio. The earlier 2D assets remain in the repository for project history; the exported game includes only the current scene and its resources.
 
-## Sources used
+
+## Version 0.4 model resources
+
+[Sky Pirate Arcade model resources](https://arcade.legends-station.com/?id=resource-models) credits **Xinus22** for the contributed packs and **Kion** for the ripping tools. Original game models, textures and designs belong to **Capcom**. Availability on a fan resource site does not establish a commercial redistribution licence. These assets are credited as unofficial fan resources, not CC0 or project-owned art.
+
+| Repository directory | Download pack | Model |
+| --- | --- | --- |
+| `assets/models/flutter`, `drache`, `feldynaught` | `mml1_vehiclesmecha_pack` | Flutter, Drache and Feldynaught |
+| `assets/models/horokko`, `sharukurusu`, `guardian` | `mml1_reaverbots_pack` | Horokko, Sharukurusu and Hanmuru Doll |
+| `assets/models/roll`, `data`, `barrell` | `mml1_casketts_pack` | Roll, Data and Barrell |
+| `assets/models/tron`, `servbot` | `mml1_bonnes_pack` | Tron and Servbot |
+| `assets/models/megaman` | `xinus_megaman` | Custom rigged MegaMan model by Xinus22 |
+
+Downloads use `https://arcade.legends-station.com/dlr.php?dl=<pack>`. FBX models and their matching texture atlases are bundled directly. Import unit corrections normalize the game rips. MegaMan's source FBX was reduced to visible character meshes and converted to GLB with Godot; unused helmet/special-weapon geometry was removed. TIF body/weapon textures were converted to PNG with Pillow. Embedded GLB textures are extracted by Godot on import. Skeleton posing is authored in `scripts/legends/models.gd`; no external animation pack is claimed.
+
+The Flutter landing, crew cabin, connected ruin chambers, Bonne arena, scenery, lights, collision geometry and menus are built in `scripts/legends/`. Original paving, grass and ruin texture adaptations from the earlier art pipeline are reused. Original music and attributed game sound effects retain their credits below.
+
+## Earlier assets and reused textures/audio
 
 | Files | Source | Reuse status / contribution |
 | --- | --- | --- |
@@ -27,7 +44,7 @@ The user's supplied resources informed the design and helped identify the Seeteu
 - [Mega Man Legends](https://www.legends-station.com/?id=mega-man-legends)
 - [Mega Man Legends 2](https://www.legends-station.com/?id=mega-man-legends-2)
 
-The yellow Flutter and red roof, MegaMan's blue silhouette, Roll's workshop role, Data's save role, Refractors, Reaverbot eyes, Bonne machinery, segmented health and scrolling blue pause menus are deliberate Legends cues. The garden, shipping, requests, friendship, schedules and day cycle provide the life-sim rhythm.
+The yellow Flutter and red roof, MegaMan's blue silhouette, Roll's workshop role, Data's save role, Refractors, Reaverbot eyes, Bonne machinery, segmented health and scrolling blue pause menus are deliberate Legends cues. The earlier garden and town routines are superseded by the top-down action chapter in version 0.4.
 
 ## Rebuild
 

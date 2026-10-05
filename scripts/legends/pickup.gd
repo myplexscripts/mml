@@ -1,0 +1,30 @@
+extends Node3D
+var game
+var kind: String="zenny"
+var amount: int=1
+var motion:=Vector3.ZERO
+var age: float=0
+var visual: Node3D
+func _ready() -> void:
+ motion=Vector3(randf_range(-2,2),3.5,randf_range(-2,2))
+ var colour: Color=Color("ffe0a0") if kind=="zenny" else (Color("99e3db") if kind=="shards" else Color("a8b4b4"))
+ visual=game.crystal(Vector3.ZERO,colour,.17 if kind=="zenny" else .24,self)
+func _physics_process(delta: float) -> void:
+ if not game.active():return
+ age+=delta;motion.y-=9.8*delta
+ var next: Vector3=position+motion*delta
+ var query:=PhysicsRayQueryParameters3D.create(position,next,1)
+ var hit:=get_world_3d().direct_space_state.intersect_ray(query)
+ if not hit.is_empty():
+  position=hit.position+hit.normal*.14;motion=motion.bounce(hit.normal)*.35
+ else:position=next
+ motion.x=move_toward(motion.x,0,3*delta);motion.z=move_toward(motion.z,0,3*delta)
+ if position.y<.14:position.y=.14;motion.y=absf(motion.y)*.25
+ var target: Vector3=game.player.position+Vector3.UP*.4
+ var distance: float=position.distance_to(target)
+ if distance<3.7 and age>.35:
+  var attracted: Vector3=position.move_toward(target,(5+(3.7-distance)*3)*delta)
+  if game.line_clear(position,attracted):position=attracted
+ if distance<.7 and age>.35:
+  game.state.set(kind,int(game.state.get(kind))+amount);game.audio.effect("item",1.1);queue_free()
+ if is_instance_valid(visual):visual.rotation.y+=delta*2

@@ -4,6 +4,7 @@ import argparse
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -16,7 +17,7 @@ def run(godot, name, arguments, timeout=120, expected=None):
     print(f"Checking {name}...", flush=True)
     with tempfile.TemporaryDirectory(prefix="kattelox-check-") as user_data:
         env = dict(os.environ)
-        if name in ["startup", "gameplay", "combat", "expansion"]:
+        if name in ["legends", "combat"]:
             env["XDG_DATA_HOME"] = user_data
         result = subprocess.run(
             [godot, "--headless", "--path", str(ROOT), *arguments],
@@ -41,16 +42,25 @@ def main():
     (ROOT / "build").mkdir(exist_ok=True)
     (ROOT / "build" / ".gdignore").touch()
     run(options.godot, "import", ["--editor", "--quit"])
-    run(options.godot, "startup", ["--script", "tests/startup_test.gd"], expected="STARTUP: PASS")
-    run(options.godot, "gameplay", ["--script", "tests/gameplay_test.gd"], expected="0 failed")
-    run(options.godot, "expansion", ["--script", "tests/expansion_test.gd"], expected="0 failed")
-    run(options.godot, "combat", ["--script", "tests/combat_playtest.gd"], expected="COMBAT PLAYTEST: PASS")
+    run(options.godot, "legends", ["--script", "tests/legends_test.gd"], expected="0 failed")
+    run(options.godot, "combat", ["--script", "tests/legends_combat.gd"], expected="LEGENDS COMBAT: PASS")
     if options.export:
-        for preset, folder, filename in [("Windows Desktop", "windows", "KatteloxDays.exe"), ("Web", "web", "index.html")]:
+        for preset, folder, filename in [("Windows Desktop", "windows", "Flutterbound.exe"), ("Web", "web", "index.html")]:
             target = ROOT / "build" / folder / filename
             target.parent.mkdir(exist_ok=True)
             run(options.godot, "export-" + folder, ["--export-release", preset, str(target)], timeout=180)
-    print("Kattelox Days validation passed.")
+            with tempfile.TemporaryDirectory(prefix="flutterbound-pack-") as empty:
+                empty = Path(empty)
+                (empty / "project.godot").write_text('config_version=5\n[application]\nconfig/name="Export verification"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n')
+                shutil.copyfile(ROOT / "tests/export_pack_test.gd", empty / "check.gd")
+                pack = target if folder == "windows" else target.with_suffix(".pck")
+                result = subprocess.run([options.godot, "--headless", "--path", str(empty), "--script", str(empty / "check.gd"), "--", str(pack)], capture_output=True, text=True, timeout=90)
+                output = result.stdout + result.stderr
+                (ROOT / "build" / f"check-pack-{folder}.log").write_text(output)
+                if result.returncode or ERRORS.search(output) or "EXPORT PACK: PASS" not in output:
+                    raise RuntimeError(output)
+                print(f"PASS: self-contained {folder} pack", flush=True)
+    print("Flutterbound validation passed.")
 
 
 if __name__ == "__main__":
