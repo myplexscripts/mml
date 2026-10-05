@@ -1,6 +1,6 @@
 extends RefCounted
 ## Textured fan resources are credited in docs/ASSETS.md.
-const TEXTURES := {"flutter":"EM0A00.png","feldynaught":"BS0000.png","drache":"SH0C00.png","horokko":"EM0300.png","sharukurusu":"EM3701.png","guardian":"BS0200.png","roll":"EM0500.PNG","data":"GAUGE01.png","barrell":"EM2500.png","tron":"EM2800.png","servbot":"EM0000.png"}
+const TEXTURES := {"container":"KONTE.png","flutter":"EM0A00.png","feldynaught":"BS0000.png","drache":"SH0C00.png","horokko":"EM0300.png","sharukurusu":"EM3701.png","guardian":"BS0200.png","roll":"EM0500.PNG","data":"GAUGE01.png","barrell":"EM2500.png","tron":"EM2800.png","servbot":"EM0000.png"}
 
 static func make(key: String, height: float) -> Node3D:
  var scene: PackedScene=load("res://assets/models/%s/model.%s"%[key,"glb" if key=="megaman" else "fbx"])

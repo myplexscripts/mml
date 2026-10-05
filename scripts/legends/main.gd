@@ -64,7 +64,8 @@ func inputs() -> void:
 
 func active() -> bool:return mode=="game" and is_instance_valid(player)
 func pointer_in_world() -> bool:
- var p:=get_viewport().get_mouse_position();return p.y>96 and p.y<640
+ var p:=get_viewport().get_mouse_position()
+ return p.y>105 and p.y<660 and not Rect2(1080,455,178,240).has_point(p) and not Rect2(22,620,294,74).has_point(p)
 func mouse_point() -> Vector3:
  var p:=get_viewport().get_mouse_position();var start:=camera.project_ray_origin(p);var direction:=camera.project_ray_normal(p)
  var result=Plane(Vector3.UP,.65).intersects_ray(start,direction)
@@ -91,11 +92,13 @@ func _process(delta: float) -> void:
  if area=="cabin":focus=Vector3(0,0,-1)
  if area=="ruins":
   focus.x=clampf(focus.x,-10,10);focus.z=clampf(focus.z,-7,7)
- if area=="island" and mode!="title":focus.x=clampf(focus.x,-12,12);focus.z=clampf(focus.z,-7,9)
+ if area=="island" and mode!="title":
+  if player.position.x<5 and player.position.z> -5:focus=player.position.lerp(Vector3(-7,0,-3),.4)
+  focus.x=clampf(focus.x,-12,12);focus.z=clampf(focus.z,-7,9)
  camera_focus=camera_focus.lerp(focus,1-exp(-delta*7))
- var base_zoom: float=27.0 if mode=="title" or area=="bonne" else (20.0 if area in ["ruins","cabin"] else 22.0)
+ var base_zoom: float=27.0 if mode=="title" or area=="bonne" else (18.0 if area in ["ruins","cabin"] else 20.0)
  camera.size=lerpf(camera.size,base_zoom/(1.0 if mode=="title" else state.camera_zoom),minf(1,delta*8))
- camera.position=camera_focus+Vector3(0,22,13)
+ camera.position=camera_focus+Vector3(0,22,19)
  if shake>0 and not state.reduced_motion:camera.position+=Vector3(randf_range(-shake,shake),0,randf_range(-shake,shake))
  shake=move_toward(shake,0,delta*1.5);camera.look_at(camera_focus,Vector3.UP)
  ui.refresh()
@@ -352,7 +355,7 @@ func objective() -> String:
  if state.repair==0:return "Bring the Servo Motor to Roll" if "servo" in state.parts else "Find the Servo Motor on ruin level 1"
  if state.repair==1:return "Bring the Ancient Circuit to Roll" if "circuit" in state.parts else "Recover the Ancient Circuit on level 2"
  if state.repair==2:
-  if not state.tron_defeated:return "Meet Tron near the landing pad"
+  if not state.tron_defeated:return "Defeat Tron’s Feldynaught" if area=="bonne" else "Meet Tron near the landing pad"
   return "Bring the Refractor to Roll" if "refractor" in state.parts else "Recover the Large Refractor on level 3"
  return "Flutter restored / Explore the deeper ruins"
 func location() -> String:return {"island":"FLUTTER LANDING","cabin":"FLUTTER / CREW CABIN","bonne":"BONNE SHOWDOWN","ruins":"NORTHERN RUINS / LEVEL %d"%depth}[area]

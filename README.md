@@ -1,6 +1,6 @@
 # Mega Man Legends: Flutterbound
 
-A top-down Mega Man Legends fan adventure. Explore connected ruins, fight Reaverbots and Bonne machinery, salvage upgrades and return to your crew aboard the Flutter. Version **0.4.1** replaces the farming prototype with a focused action game using textured 3D models and an overhead camera.
+A top-down Mega Man Legends fan adventure. Explore connected ruins, fight Reaverbots and Bonne machinery, salvage upgrades and return to your crew aboard the Flutter. Version **0.5.0** replaces the farming prototype with a focused action game using textured 3D models and an overhead camera.
 
 ![The Flutter landing](docs/screenshots/flutterbound-landing.png)
 
@@ -8,7 +8,9 @@ A top-down Mega Man Legends fan adventure. Explore connected ruins, fight Reaver
 
 Download **Flutterbound-Windows** from the latest successful [build workflow](https://github.com/myplexscripts/mml/actions/workflows/godot-check.yml), extract it and open `Flutterbound.exe`. No engine installation is needed. The Web build requires an HTTP server and a WebGL 2 browser. Open the source in **Godot 4.7.2** and press F5 to develop or play it.
 
-Version 0.4.1 improves combat feedback with hit flashes and enemy health bars, fixes simultaneous fire/charge and controller aim switching, adds saved camera zoom and corrects new-adventure cancellation and locked-floor travel. Character walking follows actual movement, and HUD meters retain their intended dimensions. Existing Flutterbound saves stay compatible.
+Version 0.5.0 corrects the Flutter's upright landed orientation and adds metal boarding stairs with a climbable collision ramp. Original MML terrain and machinery texture crops replace placeholder surfaces, and the original ItemContainer model replaces salvage boxes. The compact HUD includes a live radar, mission display and energy meter; the scrolling field log includes a posed 3D character preview. Existing Flutterbound saves remain compatible.
+
+![Field log](docs/screenshots/flutterbound-status.png)
 
 ## The adventure
 

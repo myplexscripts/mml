@@ -33,6 +33,7 @@ for target, folder in [("Windows", "windows"), ("Web", "web")]:
     instructions = "Extract this ZIP and open Flutterbound.exe. No engine installation is needed.\n" if target == "Windows" else "Serve these files over HTTP, then open index.html in a WebGL 2 browser.\nFor a local test: python -m http.server 8000\nOpen http://localhost:8000. Keep the same browser/origin for your save.\n"
     (source / "START-HERE.txt").write_text(common + "\n" + instructions)
     (source / "CREDITS.md").write_bytes((ROOT / "docs/ASSETS.md").read_bytes())
+    (source / "FONT-LICENSE.txt").write_bytes((ROOT / "assets/fonts/OFL.txt").read_bytes())
     files = [f for f in source.iterdir() if f.is_file() and f.suffix not in [".import", ".tmp"] and ".tmp." not in f.name and "KatteloxDays" not in f.name]
     archive = packages / f"Flutterbound-{target}-{version}.zip"
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipped:

@@ -1,0 +1,138 @@
+{
+  "sources": {
+    "tex_fab_gamerip1.png": "https://arcade.legends-station.com/resources/tex_fab_gamerip1.png",
+    "dump": "https://arcade.legends-station.com/resources/mml1_texture_dump.rar"
+  },
+  "textures": [
+    {
+      "file": "stone.png",
+      "source": "tex_fab_gamerip1.png",
+      "crop": [
+        99,
+        66,
+        131,
+        98
+      ]
+    },
+    {
+      "file": "hex_floor.png",
+      "source": "tex_fab_gamerip1.png",
+      "crop": [
+        99,
+        33,
+        131,
+        65
+      ]
+    },
+    {
+      "file": "wall.png",
+      "source": "tex_fab_gamerip1.png",
+      "crop": [
+        0,
+        0,
+        32,
+        32
+      ]
+    },
+    {
+      "file": "wall_cap.png",
+      "source": "tex_fab_gamerip1.png",
+      "crop": [
+        198,
+        0,
+        230,
+        32
+      ]
+    },
+    {
+      "file": "metal.png",
+      "source": "tex_fab_gamerip1.png",
+      "crop": [
+        33,
+        33,
+        65,
+        65
+      ]
+    },
+    {
+      "file": "sand.png",
+      "source": "tex_fab_gamerip1.png",
+      "crop": [
+        99,
+        99,
+        131,
+        131
+      ]
+    },
+    {
+      "file": "pillar.png",
+      "source": "tex_fab_gamerip1.png",
+      "crop": [
+        0,
+        99,
+        32,
+        131
+      ]
+    },
+    {
+      "file": "circuit.png",
+      "source": "tex_fab_gamerip1.png",
+      "crop": [
+        231,
+        33,
+        263,
+        65
+      ]
+    },
+    {
+      "file": "water.png",
+      "source": "tex_fab_gamerip1.png",
+      "crop": [
+        66,
+        99,
+        98,
+        131
+      ]
+    },
+    {
+      "file": "grass.png",
+      "source": "1345d386-1a893e10.png",
+      "crop": [
+        0,
+        0,
+        32,
+        32
+      ]
+    },
+    {
+      "file": "grass_worn.png",
+      "source": "1345d386-1a893e10.png",
+      "crop": [
+        64,
+        0,
+        96,
+        32
+      ]
+    },
+    {
+      "file": "cabin_metal.png",
+      "source": "13691ce7-af7e8726.png",
+      "crop": [
+        0,
+        0,
+        32,
+        32
+      ]
+    },
+    {
+      "file": "cabin_panel.png",
+      "source": "51989120-298f171b.png",
+      "crop": [
+        0,
+        0,
+        64,
+        32
+      ]
+    }
+  ]
+}

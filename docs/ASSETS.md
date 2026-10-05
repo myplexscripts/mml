@@ -1,6 +1,6 @@
 # Bundled assets and provenance
 
-Version 0.4 uses textured 3D character and machinery models, original environment geometry, imported terrain textures and Ogg audio. The earlier 2D assets remain in the repository for project history; the exported game includes only the current scene and its resources.
+Version 0.5 uses textured 3D character and machinery models, original environment geometry, imported terrain textures and Ogg audio. The earlier 2D assets remain in the repository for project history; the exported game includes only the current scene and its resources.
 
 
 ## Version 0.4 model resources
@@ -17,7 +17,7 @@ Version 0.4 uses textured 3D character and machinery models, original environmen
 
 Downloads use `https://arcade.legends-station.com/dlr.php?dl=<pack>`. FBX models and their matching texture atlases are bundled directly. Import unit corrections normalize the game rips. MegaMan's source FBX was reduced to visible character meshes and converted to GLB with Godot; unused helmet/special-weapon geometry was removed. TIF body/weapon textures were converted to PNG with Pillow. Embedded GLB textures are extracted by Godot on import. Skeleton posing is authored in `scripts/legends/models.gd`; no external animation pack is claimed.
 
-The Flutter landing, crew cabin, connected ruin chambers, Bonne arena, scenery, lights, collision geometry and menus are built in `scripts/legends/`. Original paving, grass and ruin texture adaptations from the earlier art pipeline are reused. Original music and attributed game sound effects retain their credits below.
+The Flutter landing, crew cabin, connected ruin chambers, Bonne arena, scenery, lights, collision geometry and menus are built in `scripts/legends/`. Version 0.5 uses selected original MML texture crops for the island, landing apron, ruins, staircase and cabin. Original music and attributed game sound effects retain their credits below.
 
 ## Earlier assets and reused textures/audio
 
@@ -60,3 +60,16 @@ Mega Man, Mega Man Legends, MegaMan Volnutt, Roll Caskett, Data, Barrell Caskett
 ## Version 0.3 expansion
 
 The tomato and sunflower sprites, seedlings, shop counter, stock shelves, cafe tables, plant pots, museum display cases, salvage crates and weapon plans are original pixel art from `tools/build_art.py`. They add no new third-party licences. The Grenade Arm is a Mega Man Legends-inspired mechanic; the [Legends Station special-weapon reference](https://www.legends-station.com/?id=mml1-special-weapons) informed the design. Projectile visuals and explosion particles are drawn by the game. Existing credited Refractor shard graphics and sound effects are reused.
+
+## Version 0.5 visual resources
+
+| Files | Source and credit | Adaptation |
+| --- | --- | --- |
+| `assets/legends/stone.png`, `hex_floor.png`, `wall.png`, `wall_cap.png`, `metal.png`, `sand.png`, `pillar.png`, `circuit.png`, `water.png` | [MML1 Game Rip Tiles](https://arcade.legends-station.com/resources/tex_fab_gamerip1.png), ripped and contributed by **fAB**, original Capcom textures | Exact 32 × 32 crops; runtime tints recorded in world.gd. |
+| `assets/legends/grass.png`, `grass_worn.png`, `cabin_metal.png`, `cabin_panel.png` | [MML1 complete texture dump](https://arcade.legends-station.com/resources/mml1_texture_dump.rar), contributed by **DylanTheCG**, original Capcom textures | Selected palette variants and exact crops, recorded by original hashed filename in `assets/legends/provenance.json`. |
+| `assets/models/container` | [MML1 Misc model pack](https://arcade.legends-station.com/dlr.php?dl=mml1_misc_pack), contributed by **Xinus22**, ripping tools by **Kion** | Original ItemContainer FBX and matching KONTE texture, used for salvage and service containers. |
+| `assets/fonts/BarlowCondensed-SemiBold.ttf` | [Barlow Condensed](https://github.com/google/fonts/tree/main/ofl/barlowcondensed), **Jeremy Tribby** | SIL Open Font License 1.1, included in assets/fonts/OFL.txt and each build ZIP as FONT-LICENSE.txt. |
+
+Selected source PNGs are preserved in `assets/source/legends`. Run `python tools/build_legends_textures.py` to recreate all crops without downloading the full texture dump. The geometry, landings, staircase, radar, field log, card treatment and colour choices are authored in this project. These are actual runtime resources, not screenshot overlays.
+
+The Flutter retains its source model's upright landed orientation, with the deck above the cabin and the fin pointing upward. Landing supports, a boarding staircase and railings are authored around that orientation.

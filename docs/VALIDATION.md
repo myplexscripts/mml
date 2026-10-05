@@ -1,4 +1,4 @@
-# Flutterbound 0.4.1 validation
+# Flutterbound 0.5.0 validation
 
 Godot **4.7.2**, GL compatibility renderer, 1280 × 720 UI, fixed overhead 3D camera and 60 Hz physics. Windows x86_64 and single-threaded WebGL 2 exports.
 
@@ -6,7 +6,7 @@ Godot **4.7.2**, GL compatibility renderer, 1280 × 720 UI, fixed overhead 3D ca
 
 `python tools/check_game.py --godot godot --export` imports the source, rejects runtime errors, executes the following checks and exports both targets:
 
-- **29 campaign/physics checks:** title/new adventure, quest start, cabin healing, input movement, merged-wall collision, dash movement/energy, guarded cache, loot/score, all three repairs, guardian/Tron appearance, Bonne unlock, ending, priced upgrade, Grenade Arm crafting, advancing Deep Digs, bottle use, defeat recovery, atomic save/reload credits navigation, safe new-adventure cancellation, thin meter dimensions, locked-floor rejection and saved camera zoom.
+- **31 campaign/physics checks:** upright Flutter landing, climbable staircase ramp, title/new adventure, quest start, cabin healing, input movement, merged-wall collision, dash movement/energy, guarded cache, loot/score, all three repairs, guardian/Tron appearance, Bonne unlock, ending, priced upgrade, Grenade Arm crafting, advancing Deep Digs, bottle use, defeat recovery, atomic save/reload credits navigation, safe new-adventure cancellation, thin meter dimensions, locked-floor rejection and saved camera zoom.
 - **Normal-input Bonne playtest:** active AI, ordinary movement, lock-on, Buster fire and dash, starting armour/power and three bottles. The recorded run defeats the Feldynaught with 100 health, three bottles remaining and 1315 score. No enemy health reduction, frozen enemies or player-stat boosts are used for this fight.
 - **Isolated combat checks:** keyboard hold/release charges for 40 damage even while normal fire is held; right-stick aim takes priority over stale mouse aim; hits expose health feedback; swept shots stop at arena walls; rigid-body grenade splash deals 48 damage; pause freezes and resume advances projectiles. Enemies are frozen only for these isolated collision/damage assertions.
 - **Self-contained exports:** Windows embedded pack and Web PCK mounted from an empty project. All four areas start, visible actor meshes have textures, music is available and tests/authoring tools are excluded.

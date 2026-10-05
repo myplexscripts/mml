@@ -21,5 +21,5 @@ func run():
  game.resume_game();game.state.quest_started=true;game.build_area("ruins",1,Vector3(0,0,10.5));await capture("ruins")
  game.player.position=Vector3(0,0,0);await frames(40);await capture("ruins_centre")
  game.ui.pause_screen("Map");await capture("ruin_map")
- game.resume_game();game.build_area("bonne",1,Vector3(0,0,6.5));await capture("bonne")
+ game.resume_game();game.state.repair=2;game.build_area("bonne",1,Vector3(0,0,6.5));await capture("bonne")
  game.audio.shutdown();game.queue_free();game=null;await frames(12);quit()
