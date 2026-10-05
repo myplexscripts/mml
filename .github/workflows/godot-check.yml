@@ -1,0 +1,27 @@
+name: Godot smoke test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
+
+      - name: Import and parse project
+        run: godot --headless --editor --path . --quit
+
+      - name: Start main scene for two frames
+        run: godot --headless --path . --quit-after 2
