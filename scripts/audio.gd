@@ -5,8 +5,12 @@ var voices: Array[AudioStreamPlayer] = []
 var voice_index: int = 0
 var current_track: String = ""
 var sounds: Dictionary = {}
+var playback_enabled: bool = true
 
 func _ready() -> void:
+	# Headless checks have no audio output. Avoid starting silent playback jobs
+	# whose asynchronous cleanup can outlive a fast test process.
+	playback_enabled = DisplayServer.get_name() != "headless"
 	music_player = AudioStreamPlayer.new()
 	music_player.volume_db = -17
 	add_child(music_player)
@@ -29,11 +33,11 @@ func track(name: String) -> void:
 		var stream: AudioStreamOggVorbis = load(path)
 		stream.loop = true
 		music_player.stream = stream
-		music_player.play()
+		if playback_enabled: music_player.play()
 		music_player.stream_paused = not game.state.music
 
 func effect(name: String, pitch: float = 1.0) -> void:
-	if not game.state.sound or not sounds.has(name): return
+	if not playback_enabled or not game.state.sound or not sounds.has(name): return
 	var voice := voices[voice_index]
 	voice_index = (voice_index + 1) % voices.size()
 	voice.stream = sounds[name]

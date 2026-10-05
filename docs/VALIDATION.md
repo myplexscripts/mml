@@ -25,7 +25,7 @@ Visual testing found and fixed a wrapping dialogue hint, overflowing journal con
 python tools/check_game.py --godot godot --export
 ```
 
-This runs the checks used by `.github/workflows/godot-check.yml`; logs are written to `build/check-*.log`. Gameplay tests use isolated user data and do not modify a player's save. Godot 4.7.2 export templates are required only for `--export`.
+This runs the checks used by `.github/workflows/godot-check.yml`; logs are written to `build/check-*.log`. Gameplay tests use isolated user data and do not modify a player's save. Headless runs load audio resources without starting silent playback jobs; native and browser builds use normal audio playback. Godot 4.7.2 export templates are required only for `--export`.
 
 For native screenshots, run `tests/visual_check.gd` with a graphical Godot session. It writes ignored `test-results/` images. For a standalone pack check, run `tests/export_pack_test.gd` from an empty project and pass the absolute exported EXE/PCK path after `--`.
 
