@@ -8,7 +8,7 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -18,10 +18,22 @@ jobs:
         with:
           version: 4.7.2
           use-dotnet: false
-          include-templates: false
+          include-templates: true
 
       - name: Import and parse project
         run: godot --headless --editor --path . --quit
 
       - name: Start main scene for two frames
         run: godot --headless --path . --quit-after 2
+
+      - name: Export Windows prototype
+        run: |
+          mkdir -p build/windows
+          godot --headless --path . --export-release "Windows Desktop" build/windows/KatteloxDays.exe
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: KatteloxDays-Windows
+          path: build/windows/
+          if-no-files-found: error
