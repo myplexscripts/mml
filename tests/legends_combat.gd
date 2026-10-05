@@ -37,7 +37,13 @@ func run():
  game.transition.clear();game.mode="game";game.build_area("bonne",1,Vector3(0,0,7));await ticks(3)
  for enemy in game.enemies:enemy.set_physics_process(false)
  var target=game.enemies[0];target.position=Vector3(0,0,2);target.health=100;game.player.facing=Vector3.FORWARD
- Input.action_press("charge");await ticks(48);Input.action_release("charge");await ticks(18)
+ game.mouse_aim=true;Input.action_press("aim_right");await ticks(2)
+ check(not game.mouse_aim and game.player.facing.x>.9,"right stick overrides stale mouse aim")
+ Input.action_release("aim_right");game.player.facing=Vector3.FORWARD
+ Input.action_press("fire");Input.action_press("charge");await ticks(48)
+ check(target.health==100,"charging suppresses held normal fire")
+ Input.action_release("charge");Input.action_release("fire");await ticks(18)
+ check(target.hit_time>0,"hits expose enemy health feedback")
  check(target.health==60,"charged input deals 40 damage")
  game.player.shot_cooldown=0;target.position=Vector3(0,0,12)
  game.player.facing=Vector3.BACK;game.player.fire();await ticks(35)

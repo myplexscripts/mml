@@ -22,6 +22,9 @@ var phase: String="idle"
 var timer: float=0
 var cooldown: float=1.1
 var attack_direction:=Vector3.BACK
+var hit_time: float=0
+var flash_time: float=0
+var walk_phase: float=0
 var clock: float=0
 var attack_count: int=0
 var home:=Vector3.ZERO
@@ -50,7 +53,8 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
  if not game.active() or defeated:return
- clock+=delta;invincible=maxf(0,invincible-delta)
+ clock+=delta;invincible=maxf(0,invincible-delta);hit_time=maxf(0,hit_time-delta);flash_time=maxf(0,flash_time-delta)
+ Models.flash(visual,flash_time*4)
  velocity.y=-3.0
  if role=="player":player_step(delta)
  elif role=="enemy":enemy_step(delta)
@@ -59,6 +63,9 @@ func _physics_process(delta: float) -> void:
   Models.pose(visual,clock*4,kind=="data")
   visual.position.y=sin(clock*5)*.025 if kind=="data" else 0
  move_and_slide()
+ if role=="player":
+  var speed: float=Vector2(get_real_velocity().x,get_real_velocity().z).length();walk_phase+=speed*delta*8
+  Models.pose(visual,walk_phase,speed>.15,shot_cooldown>.1 or charge>.1)
  visual.rotation.y=lerp_angle(visual.rotation.y,atan2(facing.x,facing.z),minf(1,delta*16))
  if role=="player":
   visual.visible=invincible<=0 or int(invincible*16)%2==0
@@ -72,7 +79,7 @@ func player_step(delta: float) -> void:
  var move:=Vector3(input.x,0,input.y)
  if move.length()>.1:facing=move.normalized()
  var aim:=Input.get_vector("aim_left","aim_right","aim_up","aim_down")
- if aim.length()>.2:facing=Vector3(aim.x,0,aim.y).normalized()
+ if aim.length()>.2:game.mouse_aim=false;facing=Vector3(aim.x,0,aim.y).normalized()
  if Input.is_action_pressed("lock"):
   var target=game.nearest_enemy(position,14)
   if is_instance_valid(target):facing=flat_direction(target.position)
@@ -84,8 +91,9 @@ func player_step(delta: float) -> void:
  var travel: Vector3=(dash_direction*12.0 if dash_time>0 else move*5.2)+knockback
  velocity.x=travel.x;velocity.z=travel.z;knockback=knockback.move_toward(Vector3.ZERO,18*delta)
  if dash_time>0 and not game.state.reduced_motion:game.spark(position+Vector3(0,.65,0),Color("9cd8eb"),.18,.12)
- if Input.is_action_pressed("fire") and (not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or game.pointer_in_world()):fire()
- if Input.is_action_pressed("charge") and (not Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) or game.pointer_in_world()):
+ var charging_input: bool=Input.is_action_pressed("charge") and (not Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) or game.pointer_in_world())
+ if not charging_input and charge<=0 and Input.is_action_pressed("fire") and (not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or game.pointer_in_world()):fire()
+ if charging_input:
   charge=minf(1.2,charge+delta);ring.visible=true;ring.scale=Vector3.ONE*(1+charge)
  elif charge>0:
   if charge>=.65:fire(true)
@@ -93,7 +101,6 @@ func player_step(delta: float) -> void:
  if Input.is_action_just_pressed("special"):special_fire()
  if Input.is_action_just_pressed("heal"):game.use_bottle()
  game.state.energy=minf(100,game.state.energy+delta*(5 if move.length()<.1 else 1.8))
- Models.pose(visual,clock*13,move.length()>.1,shot_cooldown>.1)
  if move.length()>.1:
   step_time-=delta
   if step_time<=0:step_time=.3;game.audio.effect("step",1.2)
@@ -161,9 +168,11 @@ func hurt(damage: int, from: Vector3) -> void:
   invincible=.9;game.state.health-=maxi(1,damage-game.state.armour*2)
   knockback=from.direction_to(position)*5;knockback.y=0
   game.combo=0;game.audio.effect("hurt");game.shake=.13
-  game.floating(position+Vector3.UP*2,"-%d"%damage,Color("ffb19c"))
+  flash_time=.16
+  game.floating(position+Vector3.UP*2,"-%d"%maxi(1,damage-game.state.armour*2),Color("ffb19c"))
   if game.state.health<=0:game.call_deferred("knock_out")
  else:
+  hit_time=2.5;flash_time=.16
   health-=damage;game.audio.effect("hit");game.floating(position+Vector3.UP*2,"%d"%damage,Color("ffe4a0"))
   knockback=from.direction_to(position)*(1.2 if boss else 4.0);knockback.y=0
   if health<=0:defeated=true;game.enemy_defeated(self);queue_free()

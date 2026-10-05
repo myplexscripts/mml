@@ -11,7 +11,8 @@ packages.mkdir(exist_ok=True)
 common = f"""Mega Man Legends: Flutterbound {version}
 
 WASD/arrows: move. Mouse: aim. Left click/J: fire. K: lock.
-Hold right click/H, then release: charged Buster. Shift: dash.
+Hold right click/H/controller RT, then release: charged Buster. Shift: dash.
+Mouse wheel: camera zoom (saved).
 E/F/Space: interact. Q: energy bottle. L: crafted Grenade Arm.
 Esc: pause. M: map. Tab: equipment. F11: fullscreen.
 Controller: left stick moves, right stick aims, X fires, RB dashes,

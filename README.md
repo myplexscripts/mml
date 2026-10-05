@@ -1,12 +1,14 @@
 # Mega Man Legends: Flutterbound
 
-A top-down Mega Man Legends fan adventure. Explore connected ruins, fight Reaverbots and Bonne machinery, salvage upgrades and return to your crew aboard the Flutter. Version **0.4.0** replaces the farming prototype with a focused action game using textured 3D models and an overhead camera.
+A top-down Mega Man Legends fan adventure. Explore connected ruins, fight Reaverbots and Bonne machinery, salvage upgrades and return to your crew aboard the Flutter. Version **0.4.1** replaces the farming prototype with a focused action game using textured 3D models and an overhead camera.
 
 ![The Flutter landing](docs/screenshots/flutterbound-landing.png)
 
 ## Play
 
 Download **Flutterbound-Windows** from the latest successful [build workflow](https://github.com/myplexscripts/mml/actions/workflows/godot-check.yml), extract it and open `Flutterbound.exe`. No engine installation is needed. The Web build requires an HTTP server and a WebGL 2 browser. Open the source in **Godot 4.7.2** and press F5 to develop or play it.
+
+Version 0.4.1 improves combat feedback with hit flashes and enemy health bars, fixes simultaneous fire/charge and controller aim switching, adds saved camera zoom and corrects new-adventure cancellation and locked-floor travel. Character walking follows actual movement, and HUD meters retain their intended dimensions. Existing Flutterbound saves stay compatible.
 
 ## The adventure
 
@@ -24,7 +26,7 @@ Combat has independent movement and aiming, visible-enemy lock-on, charged shots
 | --- | --- | --- |
 | Move / aim | WASD or arrows / mouse | Left / right stick |
 | Fire | Hold left click or J | X |
-| Charged Buster | Hold right click or H, then release | Keyboard / mouse |
+| Charged Buster | Hold right click or H, then release | Hold RT, then release |
 | Lock on | Hold K | LB |
 | Dash | Shift | RB |
 | Interact / dialogue | E, F or Space | A |
@@ -32,6 +34,7 @@ Combat has independent movement and aiming, visible-enemy lock-on, charged shots
 | Energy bottle | Q | Y |
 | Pause | Esc or Menu | Start |
 | Map / equipment | M / Tab | Pause tabs |
+| Camera zoom | Mouse wheel | Mouse / saved preference |
 | Fullscreen | F11 | Window controls |
 
 ## Saves

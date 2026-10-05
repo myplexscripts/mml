@@ -2,13 +2,28 @@ extends CanvasLayer
 const BLUE:=Color("173e62")
 const GOLD:=Color("f4d484")
 const WHITE:=Color("fff2d4")
+
+class Meter extends Control:
+ var value: float=0:
+  set(next):value=next;queue_redraw()
+ var max_value: float=100:
+  set(next):max_value=maxf(1,next);queue_redraw()
+ var tint:=Color("f4d484")
+ var segmented: bool=false
+ func _ready():mouse_filter=Control.MOUSE_FILTER_IGNORE
+ func _draw():
+  draw_rect(Rect2(Vector2.ZERO,size),Color("29434b"))
+  draw_rect(Rect2(Vector2.ZERO,Vector2(size.x*clampf(value/max_value,0,1),size.y)),tint)
+  if segmented:
+   for i in range(1,10):draw_line(Vector2(i*size.x/10,0),Vector2(i*size.x/10,size.y),Color("173e62"),2)
+
 var game
 var root: Control
 var overlay: Control
 var hud: Control
 var fade_rect: ColorRect
-var health: ProgressBar
-var energy: ProgressBar
+var health: Meter
+var energy: Meter
 var health_text: Label
 var currency: Label
 var objective: Label
@@ -18,7 +33,7 @@ var notice: Label
 var notice_panel: PanelContainer
 var weapon: Label
 var score: Label
-var boss_bar: ProgressBar
+var boss_bar: Meter
 var boss_label: Label
 var reticle: Control
 var combo: Label
@@ -38,9 +53,8 @@ func _ready() -> void:
  var money_panel:=Panel.new();money_panel.position=Vector2(1030,16);money_panel.size=Vector2(232,80);money_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE;money_panel.add_theme_stylebox_override("panel",style(Color(.06,.17,.26,.87)));hud.add_child(money_panel)
  var top:=Panel.new();top.position=Vector2(18,16);top.size=Vector2(348,80);top.add_theme_stylebox_override("panel",style(Color(.06,.17,.26,.94)));hud.add_child(top)
  health_text=label("MEGAMAN",18,GOLD);health_text.position=Vector2(34,26);hud.add_child(health_text)
- health=ProgressBar.new();health.position=Vector2(34,55);health.size=Vector2(314,15);health.max_value=100;health.show_percentage=false;health.add_theme_font_size_override("font_size",1)
- health.add_theme_stylebox_override("background",bar_style(Color("29434b")));health.add_theme_stylebox_override("fill",bar_style(GOLD));hud.add_child(health)
- energy=ProgressBar.new();energy.position=Vector2(34,78);energy.size=Vector2(314,5);energy.max_value=100;energy.show_percentage=false;energy.add_theme_font_size_override("font_size",1);energy.add_theme_stylebox_override("background",bar_style(Color("29434b")));energy.add_theme_stylebox_override("fill",bar_style(Color("8fcbb8")));hud.add_child(energy)
+ health=Meter.new();health.position=Vector2(34,55);health.size=Vector2(314,15);health.segmented=true;hud.add_child(health)
+ energy=Meter.new();energy.position=Vector2(34,81);energy.size=Vector2(314,6);energy.tint=Color("8fcbb8");hud.add_child(energy)
  currency=label("250 Z",22,GOLD);currency.position=Vector2(1030,24);currency.size=Vector2(230,32);currency.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;hud.add_child(currency)
  score=label("SCORE 0",16);score.position=Vector2(1030,60);score.size=Vector2(230,25);score.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;hud.add_child(score)
  objective=label("",18);objective.position=Vector2(390,28);objective.size=Vector2(618,30);objective.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;objective.autowrap_mode=TextServer.AUTOWRAP_OFF;hud.add_child(objective)
@@ -55,15 +69,13 @@ func _ready() -> void:
  var heal:=button("Q  BOTTLE",func():game.use_bottle());heal.name="HealButton";heal.position=Vector2(18,657);heal.size=Vector2(180,52);heal.focus_mode=Control.FOCUS_NONE;hud.add_child(heal)
  var menu_button:=button("MENU",func():game.ui.pause_screen("Status"));menu_button.position=Vector2(1090,657);menu_button.size=Vector2(172,52);menu_button.focus_mode=Control.FOCUS_NONE;hud.add_child(menu_button)
  boss_label=label("",18,GOLD);boss_label.position=Vector2(430,504);boss_label.size=Vector2(420,28);boss_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(boss_label)
- boss_bar=ProgressBar.new();boss_bar.position=Vector2(430,535);boss_bar.size=Vector2(420,12);boss_bar.show_percentage=false;boss_bar.add_theme_font_size_override("font_size",1);boss_bar.add_theme_stylebox_override("background",bar_style(Color("152e3a")));boss_bar.add_theme_stylebox_override("fill",bar_style(Color("d98465")));hud.add_child(boss_bar)
+ boss_bar=Meter.new();boss_bar.position=Vector2(430,535);boss_bar.size=Vector2(420,12);boss_bar.tint=Color("d98465");hud.add_child(boss_bar)
  reticle=Control.new();reticle.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);reticle.mouse_filter=Control.MOUSE_FILTER_IGNORE;hud.add_child(reticle);reticle.draw.connect(draw_reticle)
  overlay=Control.new();overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);overlay.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(overlay)
  fade_rect=ColorRect.new();fade_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);fade_rect.color=Color(0,0,0,0);fade_rect.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(fade_rect)
 
 func style(colour: Color,border: Color=Color("567689")) -> StyleBoxFlat:
  var s:=StyleBoxFlat.new();s.bg_color=colour;s.border_color=border;s.set_border_width_all(1);s.content_margin_left=18;s.content_margin_right=18;s.content_margin_top=12;s.content_margin_bottom=12;return s
-func bar_style(colour: Color) -> StyleBoxFlat:
- var result:=StyleBoxFlat.new();result.bg_color=colour;return result
 func theme() -> Theme:
  var t:=Theme.new();t.default_font_size=18
  for key in ["Label","Button","RichTextLabel"]:t.set_color("font_color",key,WHITE)
@@ -102,19 +114,19 @@ func title_screen() -> void:
  new_button.name="NewAdventure";box.add_child(new_button)
  var load_button:=button("Continue",func():game.continue_game());load_button.name="ContinueAdventure";load_button.disabled=not game.state.save_exists();box.add_child(load_button)
  var credits:=button("Controls and credits",func():credits_screen());box.add_child(credits)
- box.add_child(label("v0.4.0 / Unofficial fan adventure",14,Color("aac8c7")))
+ box.add_child(label("v0.4.1 / Unofficial fan adventure",14,Color("aac8c7")))
  new_button.grab_focus()
 
 func credits_screen() -> void:
  var from_pause: bool=game.mode=="pause"
  clear_overlay();shade(.75);var box:=panel(Rect2(165,82,950,556))
  box.add_child(label("CONTROLS & CREDITS",28,GOLD))
- for text in ["WASD / arrows: move. Left click or J: fire. K: lock on. Shift: dash.","Hold right click or H, then release: charged shot. L: Grenade Arm. Q: bottle.","E / F / Space: interact. Esc: pause. M: map. Tab: equipment. F11: fullscreen.","Controller: left stick moves, right stick aims, X fires, RB dashes, LB locks.","A interacts, B fires grenades, Y uses a bottle, Start pauses.","Mega Man Legends characters and original assets belong to Capcom.","Textured model rips and MegaMan fan model: Xinus22, using tools by Kion.","Models sourced from Sky Pirate Arcade / Legends Station. Full credits: docs/ASSETS.md.","Original music and environment construction: this fan project."]:
+ for text in ["WASD / arrows: move. Left click or J: fire. K: lock on. Shift: dash.","Hold right click / H / RT, then release: charged shot. L: Grenade Arm. Q: bottle.","E / F / Space: interact. Esc: pause. M: map. Tab: equipment. F11: fullscreen.","Controller: left stick moves, right stick aims, X fires, RB dashes, LB locks.","A interacts, B fires grenades, Y uses a bottle, Start pauses. Mouse wheel: zoom.","Mega Man Legends characters and original assets belong to Capcom.","Textured model rips and MegaMan fan model: Xinus22, using tools by Kion.","Models sourced from Sky Pirate Arcade / Legends Station. Full credits: docs/ASSETS.md.","Original music and environment construction: this fan project."]:
   box.add_child(label(text,17))
  var back:=button("Back",func():pause_screen("Options") if from_pause else title_screen());box.add_child(back);back.grab_focus()
 
 func menu(title: String,description: String,choices: Array,return_title: bool=false) -> void:
- game.mode="menu";clear_overlay();shade()
+ game.mode="menu";game.menu_return_title=return_title;clear_overlay();shade()
  var box:=panel(Rect2(272,90,736,540));box.add_child(label(title,28,GOLD))
  var desc:=label(description,18);desc.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;desc.custom_minimum_size.y=62;box.add_child(desc)
  var scroll:=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;box.add_child(scroll)
@@ -221,8 +233,13 @@ func summary(title: String,lines: Array) -> void:
  var b:=button("Keep exploring Kattelox",func():game.resume_game());box.add_child(b);b.grab_focus()
 
 func draw_reticle() -> void:
- for i in range(1,10):reticle.draw_line(Vector2(34+i*31.4,55),Vector2(34+i*31.4,70),BLUE,2)
  if not game.active():return
+ for enemy in game.enemies:
+  if not is_instance_valid(enemy) or enemy.defeated or enemy.boss or enemy.hit_time<=0:continue
+  var at: Vector2=game.camera.unproject_position(enemy.position+Vector3.UP*2)
+  var bar:=Rect2(at-Vector2(20,3),Vector2(40,5))
+  reticle.draw_rect(bar,BLUE);reticle.draw_rect(Rect2(bar.position,Vector2(40*maxf(0,float(enemy.health)/enemy.max_health),5)),GOLD)
+
  var target=game.nearest_enemy(game.player.position,14) if Input.is_action_pressed("lock") else null
  var point: Vector2=game.get_viewport().get_mouse_position()
  if is_instance_valid(target):point=game.camera.unproject_position(target.position+Vector3.UP*.8)

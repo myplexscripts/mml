@@ -9,6 +9,7 @@ const Audio=preload("res://scripts/audio.gd")
 const UI=preload("res://scripts/legends/ui.gd")
 var state=State.new()
 var mode: String="title"
+var menu_return_title: bool=false
 var area: String="island"
 var depth: int=1
 var world
@@ -57,6 +58,7 @@ func inputs() -> void:
    if not InputMap.has_action(action):InputMap.add_action(action,.2)
    var event:=InputEventJoypadMotion.new();event.axis=(JOY_AXIS_LEFT_X if prefix=="move" else JOY_AXIS_RIGHT_X) if direction in ["left","right"] else (JOY_AXIS_LEFT_Y if prefix=="move" else JOY_AXIS_RIGHT_Y)
    event.axis_value=-1 if direction in ["left","up"] else 1;InputMap.action_add_event(action,event)
+ var trigger:=InputEventJoypadMotion.new();trigger.axis=JOY_AXIS_TRIGGER_RIGHT;trigger.axis_value=1;InputMap.action_add_event("charge",trigger)
  for pair in [["fire",MOUSE_BUTTON_LEFT],["charge",MOUSE_BUTTON_RIGHT]]:
   var event:=InputEventMouseButton.new();event.button_index=pair[1];InputMap.action_add_event(pair[0],event)
 
@@ -85,13 +87,14 @@ func _process(delta: float) -> void:
   interaction=find_interaction();update_effects(delta)
  var focus: Vector3=player.position if is_instance_valid(player) else Vector3.ZERO
  if mode=="title":focus=Vector3(-15,0,-1)
- if area=="bonne":focus=Vector3.ZERO
+ if area=="bonne":focus=player.position*.4 if state.camera_zoom>1.05 else Vector3.ZERO
  if area=="cabin":focus=Vector3(0,0,-1)
  if area=="ruins":
   focus.x=clampf(focus.x,-10,10);focus.z=clampf(focus.z,-7,7)
  if area=="island" and mode!="title":focus.x=clampf(focus.x,-12,12);focus.z=clampf(focus.z,-7,9)
  camera_focus=camera_focus.lerp(focus,1-exp(-delta*7))
- camera.size=lerpf(camera.size,27.0 if mode=="title" or area=="bonne" else (20.0 if area in ["ruins","cabin"] else 22.0),minf(1,get_process_delta_time()*8))
+ var base_zoom: float=27.0 if mode=="title" or area=="bonne" else (20.0 if area in ["ruins","cabin"] else 22.0)
+ camera.size=lerpf(camera.size,base_zoom/(1.0 if mode=="title" else state.camera_zoom),minf(1,delta*8))
  camera.position=camera_focus+Vector3(0,22,13)
  if shake>0 and not state.reduced_motion:camera.position+=Vector3(randf_range(-shake,shake),0,randf_range(-shake,shake))
  shake=move_toward(shake,0,delta*1.5);camera.look_at(camera_focus,Vector3.UP)
@@ -107,6 +110,7 @@ func _unhandled_input(event: InputEvent) -> void:
  if event.is_action_pressed("pause_game"):
   if mode=="game":ui.pause_screen("Status")
   elif mode=="dialogue":ui.advance_dialogue()
+  elif mode=="menu" and menu_return_title:ui.title_screen()
   elif mode in ["pause","menu","summary"]:resume_game()
   get_viewport().set_input_as_handled();return
  if event.is_action_pressed("interact"):
@@ -114,9 +118,11 @@ func _unhandled_input(event: InputEvent) -> void:
   elif mode=="dialogue":ui.advance_dialogue()
   else:
    var focus:=get_viewport().gui_get_focus_owner()
-   if focus is Button:focus.pressed.emit()
+   if focus is Button and not focus.disabled:focus.pressed.emit()
   get_viewport().set_input_as_handled();return
  if not active():return
+ if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+  state.camera_zoom=clampf(state.camera_zoom*(1.1 if event.button_index==MOUSE_BUTTON_WHEEL_UP else 1.0/1.1),.8,1.6);toast("Camera zoom %d%%"%roundi(state.camera_zoom*100));get_viewport().set_input_as_handled()
  if event.is_action_pressed("map"):ui.pause_screen("Map")
  elif event.is_action_pressed("inventory"):ui.pause_screen("Equipment")
 
@@ -130,7 +136,7 @@ func quit_game() -> void:
  mode="transition";audio.shutdown();await get_tree().create_timer(.1).timeout;get_tree().quit()
 
 func build_area(target: String, level: int, spawn: Vector3) -> void:
- enemies.clear();npcs.clear();effects.clear();interaction={}
+ enemies.clear();npcs.clear();effects.clear();interaction={};combo=0;combo_time=0
  if is_instance_valid(world):world.free()
  area=target;depth=level;run_score=0
  world=World.new();world.game=self;world.area=target;world.depth=level;add_child(world);move_child(world,0)
@@ -271,7 +277,9 @@ func open_shop() -> void:
 func execute_choice(action: String) -> void:
  audio.effect("select")
  if action.begins_with("dig_"):
-  var level: int=int(action.trim_prefix("dig_"));travel("ruins",level,Vector3(0,0,10.5));return
+  var level: int=int(action.trim_prefix("dig_"))
+  if not state.quest_started or level<1 or level>15 or level==2 and state.repair<1 or level==3 and not state.tron_defeated or level>=4 and (not state.completed or level>state.deepest):toast("That ruin level is still locked.");return
+  travel("ruins",level,Vector3(0,0,10.5));return
  if action.begins_with("upgrade_"):upgrade(action.trim_prefix("upgrade_"));return
  match action:
   "new":start_new()

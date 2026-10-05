@@ -7,6 +7,7 @@ static func make(key: String, height: float) -> Node3D:
  var root:=Node3D.new();root.name=key.capitalize()
  var model=scene.instantiate();root.add_child(model)
  var bounds:=AABB();var first:=true
+ var materials: Array=[]
  for mesh in model.find_children("*","MeshInstance3D",true,false):
   if key=="megaman" and mesh.name in ["Helmet","Head_2","Head2","Machine_Buster","Powered_Buster","Drill_Arm","Spread_Buster","Vacuum_Arm","Active_Buster","Blade_Arm","Shield_Arm","Shining_Laser"]:
    mesh.visible=mesh.name=="Head2"
@@ -32,18 +33,20 @@ static func make(key: String, height: float) -> Node3D:
    else: material.albedo_texture=load("res://assets/models/%s/tex/%s"%[key,TEXTURES[key]])
    material.texture_filter=BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
    material.emission_enabled=false;material.albedo_color=Color.WHITE;material.vertex_color_use_as_albedo=false;material.roughness=.9;material.metallic=0;material.cull_mode=BaseMaterial3D.CULL_DISABLED
-   mesh.set_surface_override_material(i,material)
+   mesh.set_surface_override_material(i,material);materials.append(material)
  if key=="megaman":bounds=AABB(Vector3(-.687902,1.126752,-.46603),Vector3(4.054277,3.963527,1.013878))
  var factor: float=height/maxf(bounds.size.y,.001)
  model.scale=Vector3.ONE*factor*(1.0 if key=="megaman" else .01)
  model.position=-Vector3(bounds.get_center().x,bounds.position.y,bounds.get_center().z)*factor
  root.set_meta("model",model)
  root.set_meta("height",height)
+ root.set_meta("materials",materials)
+ root.set_meta("skeletons",model.find_children("*","Skeleton3D",true,false))
  return root
 
 static func pose(visual: Node3D, phase: float, walking: bool, firing: bool=false) -> void:
  var model=visual.get_meta("model")
- for skeleton in model.find_children("*","Skeleton3D",true,false):
+ for skeleton in visual.get_meta("skeletons"):
   if visual.name=="Megaman":
    for name in ["RLeg1","LLeg1","RArm1","LArm1"]:
     var bone: int=skeleton.find_bone(name)
@@ -56,7 +59,14 @@ static func pose(visual: Node3D, phase: float, walking: bool, firing: bool=false
      if firing and name=="LArm1":
       axis=skeleton.get_bone_global_rest(bone).basis.inverse()*Vector3.UP;angle=-1.35
      skeleton.set_bone_pose_rotation(bone,Quaternion(axis.normalized(),angle))
-    else: skeleton.set_bone_pose_rotation(bone,Quaternion(Vector3.RIGHT,angle))
+    else:
+     var axis: Vector3=skeleton.get_bone_global_rest(bone).basis.inverse()*Vector3.RIGHT
+     skeleton.set_bone_pose_rotation(bone,Quaternion(axis.normalized(),angle*(1 if name=="RLeg1" else -1)))
   elif walking:
    for i in range(1,mini(4,skeleton.get_bone_count())):
     skeleton.set_bone_pose_rotation(i,Quaternion(Vector3.RIGHT,sin(phase+float(i)*PI)*.12))
+
+static func flash(visual: Node3D,strength: float) -> void:
+ for mat in visual.get_meta("materials"):
+  mat.emission_enabled=strength>0
+  if strength>0:mat.emission=Color(1,.75,.4)*strength
