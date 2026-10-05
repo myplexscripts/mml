@@ -64,7 +64,7 @@ func _physics_process(delta: float) -> void:
   visual.position.y=sin(clock*5)*.025 if kind=="data" else 0
  move_and_slide()
  if role=="player":
-  var speed: float=Vector2(get_real_velocity().x,get_real_velocity().z).length();walk_phase+=speed*delta*8
+  var speed: float=Vector2(get_real_velocity().x,get_real_velocity().z).length();walk_phase+=speed*delta*2.5
   Models.pose(visual,walk_phase,speed>.15,shot_cooldown>.1 or charge>.1)
  visual.rotation.y=lerp_angle(visual.rotation.y,atan2(facing.x,facing.z),minf(1,delta*16))
  if role=="player":
