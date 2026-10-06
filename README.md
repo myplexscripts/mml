@@ -1,6 +1,6 @@
 # Mega Man Legends: Flutterbound
 
-A top-down Mega Man Legends fan adventure. Explore connected ruins, fight Reaverbots and Bonne machinery, salvage upgrades and return to your crew aboard the Flutter. Version **0.6.0** replaces the farming prototype with a focused action game using textured 3D models and an overhead camera.
+A top-down Mega Man Legends fan adventure. Explore connected ruins, fight Reaverbots and Bonne machinery, salvage upgrades and return to your crew aboard the Flutter. Version **0.6.1** replaces the farming prototype with a focused action game using textured 3D models and an overhead camera.
 
 ![Boarding the Flutter at its connected hatch](docs/screenshots/flutterbound-boarding.png)
 
@@ -8,9 +8,11 @@ A top-down Mega Man Legends fan adventure. Explore connected ruins, fight Reaver
 
 Download **Flutterbound-Windows** from the latest successful [build workflow](https://github.com/myplexscripts/mml/actions/workflows/godot-check.yml), extract it and open `Flutterbound.exe`. No engine installation is needed. The Web build requires an HTTP server and a WebGL 2 browser. Open the source in **Godot 4.7.2** and press F5 to develop or play it.
 
-Version 0.6.0 replaces the broken character import with joshmnky's textured, animated Volnutt model and a source Buster attached to its hand. The larger landed Flutter has a measured hatch connection, continuous stair collision and solid rails. Textured Teomo City scenery supplies trees, lamps, boats, the junk shop and a converted warehouse bay. Original MML interface sprites, music and sound effects replace more placeholders. Crates, ships, buildings, rocks, trees and furniture have collision; tall scenery fades when it hides the player. Existing Flutterbound saves remain compatible.
+Version 0.6 replaces the broken character import with joshmnky's textured, animated Volnutt model and a source Buster attached to its hand. The larger landed Flutter has a measured hatch connection, continuous stair collision and solid rails. Textured Teomo City scenery supplies trees, lamps, boats, the junk shop and a converted warehouse bay. Original MML interface sprites, music and sound effects replace more placeholders. Crates, ships, buildings, rocks, trees and furniture have collision; tall scenery fades when it hides the player. Existing Flutterbound saves remain compatible.
 
 ![Field log](docs/screenshots/flutterbound-status.png)
+
+The 0.6.1 finishing pass removes collected items' collision and navigation obstacles, blocks interactions through walls, recovers unexpected falls below the map, cancels pending charges and dashes when opening menus, and adds a native Quit button.
 
 ## The adventure
 

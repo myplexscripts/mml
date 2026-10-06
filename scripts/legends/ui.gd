@@ -44,6 +44,7 @@ var dialogue_text: RichTextLabel
 var type_clock: float=0
 var portrait: SubViewport
 var pause_tab: String="Status"
+var credits_return_pause: bool=false
 var font: Font=preload("res://assets/fonts/BarlowCondensed-SemiBold.ttf")
 var radar: Control
 
@@ -138,8 +139,8 @@ func panel(rect: Rect2) -> VBoxContainer:
  var box:=VBoxContainer.new();box.add_theme_constant_override("separation",12);margin.add_child(box);return box
 
 func title_screen() -> void:
- game.mode="title";clear_overlay()
- var box:=panel(Rect2(54,130,476,466))
+ game.suspend_actions();game.mode="title";clear_overlay()
+ var box:=panel(Rect2(54,106,476,536) if not OS.has_feature("web") else Rect2(54,130,476,466))
  box.add_child(label("MEGA MAN LEGENDS",17,GOLD))
  box.add_child(label("FLUTTERBOUND",54,WHITE))
  var subtitle:=label("A top-down Digger adventure",20);box.add_child(subtitle)
@@ -150,11 +151,14 @@ func title_screen() -> void:
  new_button.name="NewAdventure";box.add_child(new_button)
  var load_button:=button("Continue",func():game.continue_game());load_button.name="ContinueAdventure";load_button.disabled=not game.state.save_exists();box.add_child(load_button)
  var credits:=button("Controls and credits",func():credits_screen());box.add_child(credits)
- box.add_child(label("v0.6.0 / Unofficial fan adventure",14,Color("aac8c7")))
+ if not OS.has_feature("web"):
+  var quit_button:=button("Quit game",func():game.quit_game());quit_button.name="QuitGame";box.add_child(quit_button)
+ box.add_child(label("v%s / Unofficial fan adventure"%ProjectSettings.get_setting("application/config/version"),14,Color("aac8c7")))
  new_button.grab_focus()
 
 func credits_screen() -> void:
  var from_pause: bool=game.mode=="pause"
+ credits_return_pause=from_pause;game.suspend_actions();game.mode="credits"
  clear_overlay();shade(.75);var box:=panel(Rect2(165,82,950,556))
  box.add_child(label("CONTROLS & CREDITS",28,GOLD))
  for text in ["WASD / arrows: move. Left click or J: fire. K: lock on. Shift: dash.","Hold right click / H / RT, then release: charged shot. L: Grenade Arm. Q: bottle.","E / F / Space: interact. Esc: pause. M: map. Tab: equipment. F11: fullscreen.","Controller: left stick moves, right stick aims, X fires, RB dashes, LB locks.","A interacts, B fires grenades, Y uses a bottle, Start pauses. Mouse wheel: zoom.","Mega Man Legends characters and original assets belong to Capcom.","Original model rips: Xinus22 / Kion. Animated Volnutt: joshmnky.","Models sourced from Sky Pirate Arcade / Legends Station. Full credits: docs/ASSETS.md.","Teomo scenery: tutsyroll / maximize. UI sprites: Legends Station / Capcom."]:
@@ -162,7 +166,7 @@ func credits_screen() -> void:
  var back:=button("Back",func():pause_screen("Options") if from_pause else title_screen());box.add_child(back);back.grab_focus()
 
 func menu(title: String,description: String,choices: Array,return_title: bool=false) -> void:
- game.mode="menu";game.menu_return_title=return_title;clear_overlay();shade()
+ game.suspend_actions();game.mode="menu";game.menu_return_title=return_title;clear_overlay();shade()
  var box:=panel(Rect2(272,90,736,540));box.add_child(label(title,28,GOLD))
  var desc:=label(description,18);desc.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;desc.custom_minimum_size.y=62;box.add_child(desc)
  var scroll:=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;box.add_child(scroll)
@@ -177,7 +181,7 @@ func menu(title: String,description: String,choices: Array,return_title: bool=fa
  else:back.grab_focus()
 
 func dialogue_screen(person: String,lines: Array,after: String="") -> void:
- game.mode="dialogue";clear_overlay();dialogue_lines=lines;dialogue_index=0;dialogue_after=after;type_clock=0
+ game.suspend_actions();game.mode="dialogue";clear_overlay();dialogue_lines=lines;dialogue_index=0;dialogue_after=after;type_clock=0
  var shell:=PanelContainer.new();shell.position=Vector2(68,438);shell.size=Vector2(1144,238);overlay.add_child(shell)
  var layout:=HBoxContainer.new();layout.add_theme_constant_override("separation",20);shell.add_child(layout)
  portrait=SubViewport.new();portrait.size=Vector2i(188,188);portrait.transparent_bg=true;portrait.own_world_3d=true;portrait.render_target_update_mode=SubViewport.UPDATE_ALWAYS
@@ -201,7 +205,7 @@ func advance_dialogue() -> void:
  dialogue_text.text=str(dialogue_lines[dialogue_index]);dialogue_text.visible_characters=0
 
 func pause_screen(tab: String="Status") -> void:
- game.mode="pause";pause_tab=tab;clear_overlay()
+ game.suspend_actions();game.mode="pause";pause_tab=tab;clear_overlay()
  var background:=ColorRect.new();background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);overlay.add_child(background)
  var shader:=Shader.new();shader.code="shader_type canvas_item; uniform bool still=false; uniform sampler2D emblem:filter_nearest,repeat_enable; void fragment(){float t=still?0.0:TIME*.018;vec2 p=UV*vec2(11.0,6.0)+vec2(t,-t);vec4 mark=texture(emblem,fract(p));float line=step(.988,fract((UV.x+UV.y+t)*32.0));vec3 base=mix(vec3(.018,.055,.17),vec3(.036,.15,.34),UV.y);COLOR=vec4(base+mark.a*.018+line*.022,1.0);}"
  var mat:=ShaderMaterial.new();mat.shader=shader;mat.set_shader_parameter("still",game.state.reduced_motion);mat.set_shader_parameter("emblem",load("res://assets/interface/buster.png"));background.material=mat
@@ -310,7 +314,7 @@ func draw_reticle() -> void:
  if is_instance_valid(target):reticle.draw_arc(point,16,0,TAU,24,GOLD,1.5,true)
 
 func refresh() -> void:
- hud.visible=game.mode!="title"
+ hud.visible=game.mode!="title" and not (game.mode=="credits" and not credits_return_pause)
  for child in hud.get_children():
   if child is Button:child.visible=game.mode=="game"
  health.max_value=game.state.max_health();health.value=game.state.health;energy.value=game.state.energy

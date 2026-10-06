@@ -49,10 +49,16 @@ func box(at: Vector3, size: Vector3, colour: Color, collision: bool=false, textu
  var mesh:=MeshInstance3D.new();var shape:=BoxMesh.new();shape.size=size;mesh.mesh=shape
  mesh.material_override=material(colour,texture);mesh.position=at;add_child(mesh)
  if collision:
-  var body:=StaticBody3D.new();body.position=at;body.collision_layer=1;body.collision_mask=0
-  var collider:=CollisionShape3D.new();var physics:=BoxShape3D.new();physics.size=size;collider.shape=physics;body.add_child(collider);add_child(body)
-  if at.y>=.3:walls.append(Rect2(at.x-size.x/2,at.z-size.z/2,size.x,size.z))
+  var body:=StaticBody3D.new();body.collision_layer=1;body.collision_mask=0
+  var collider:=CollisionShape3D.new();var physics:=BoxShape3D.new();physics.size=size;collider.shape=physics;body.add_child(collider);mesh.add_child(body)
+  if at.y>=.3:
+   var footprint:=Rect2(at.x-size.x/2,at.z-size.z/2,size.x,size.z)
+   walls.append(footprint);mesh.set_meta("navigation_bounds",footprint)
  return mesh
+
+func remove_obstacle(visual: Node3D) -> void:
+ if visual.has_meta("navigation_bounds"):walls.erase(visual.get_meta("navigation_bounds"))
+ visual.queue_free();build_navigation()
 
 func batch_box(at: Vector3,size: Vector3,colour: Color,texture: String="") -> void:
  var key: String=colour.to_html()+str(size)+texture

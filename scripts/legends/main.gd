@@ -68,7 +68,7 @@ func pointer_in_world() -> bool:
  return p.y>105 and p.y<660 and not Rect2(1080,455,178,240).has_point(p) and not Rect2(22,620,294,74).has_point(p)
 func mouse_point() -> Vector3:
  var p:=get_viewport().get_mouse_position();var start:=camera.project_ray_origin(p);var direction:=camera.project_ray_normal(p)
- var result=Plane(Vector3.UP,.65).intersects_ray(start,direction)
+ var result=Plane(Vector3.UP,player.position.y+.65).intersects_ray(start,direction)
  return result if result is Vector3 else player.position+player.facing*8
 
 func _process(delta: float) -> void:
@@ -114,6 +114,7 @@ func _unhandled_input(event: InputEvent) -> void:
  if event.is_action_pressed("pause_game"):
   if mode=="game":ui.pause_screen("Status")
   elif mode=="dialogue":ui.advance_dialogue()
+  elif mode=="credits":ui.pause_screen("Options") if ui.credits_return_pause else ui.title_screen()
   elif mode=="menu" and menu_return_title:ui.title_screen()
   elif mode in ["pause","menu","summary"]:resume_game()
   get_viewport().set_input_as_handled();return
@@ -171,7 +172,7 @@ func shoot(at: Vector3, speed: Vector3, hostile: bool, damage: int, charged: boo
  var shot=Projectile.new();shot.game=self;shot.position=at;shot.speed=speed;shot.hostile=hostile;shot.damage=damage;shot.charged=charged;shot.life=2.8 if hostile else 1.0+state.power*.15;world.add_child(shot)
 
 func throw_grenade(at: Vector3, speed: Vector3) -> void:
- var grenade=Grenade.new();grenade.game=self;grenade.position=at;world.add_child(grenade);grenade.linear_velocity=speed;audio.effect("buster",.6)
+ var grenade=Grenade.new();grenade.game=self;grenade.position=at;world.add_child(grenade);grenade.linear_velocity=speed
 
 func line_clear(from: Vector3,to: Vector3) -> bool:
  return get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(from,to,1)).is_empty()
@@ -189,11 +190,19 @@ func find_interaction() -> Dictionary:
  for npc in npcs:
   if not is_instance_valid(npc):continue
   var d: float=player.position.distance_to(npc.position)
-  if d<best:best=d;found={"name":npc.person,"person":npc.person,"pos":npc.position,"action":"npc"}
+  if d<best and interaction_clear(npc.position):best=d;found={"name":npc.person,"person":npc.person,"pos":npc.position,"action":"npc"}
  for item in world.interactables:
   var d: float=player.position.distance_to(item.pos)
-  if d<best:best=d;found=item
+  if d<best and interaction_clear(item.pos):best=d;found=item
  return found
+
+func interaction_clear(at: Vector3) -> bool:
+ var from: Vector3=player.position+Vector3.UP*.75
+ var to: Vector3=(at+Vector3.UP*.75).move_toward(from,.25)
+ return line_clear(from,to)
+
+func suspend_actions() -> void:
+ if is_instance_valid(player):player.cancel_actions()
 
 func interact() -> void:
  interaction=find_interaction()
@@ -212,7 +221,7 @@ func execute_interaction(item: Dictionary) -> void:
   "exit":state.best_run=maxi(state.best_run,run_score);travel("island",1,Vector3(6,0,-10))
   "cache":recover_cache(item)
   "plans":
-   state.weapon_plans=true;state.score+=200;world.interactables.erase(item);item.visual.queue_free();state.save_game()
+   state.weapon_plans=true;state.score+=200;world.interactables.erase(item);world.remove_obstacle(item.visual);state.save_game()
    dialogue("Roll",["Grenade Arm plans! Bring me 8 scrap, 3 Refractor shards and 450 Zenny. I can build it at our workbench."])
 
 func talk_to(person: String) -> void:

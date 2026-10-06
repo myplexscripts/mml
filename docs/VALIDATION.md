@@ -1,4 +1,4 @@
-# Flutterbound 0.6.0 validation
+# Flutterbound 0.6.1 validation
 
 Godot **4.7.2**, GL compatibility renderer, 1280 × 720 UI, fixed overhead 3D camera and 60 Hz physics. Windows x86_64 and single-threaded WebGL 2 exports.
 
@@ -10,6 +10,7 @@ Godot **4.7.2**, GL compatibility renderer, 1280 × 720 UI, fixed overhead 3D ca
 - **Normal-input Bonne playtest:** active AI, ordinary movement, lock-on, Buster fire and dash, starting armour/power and three bottles. The recorded run defeats the Feldynaught with 100 health, three bottles remaining and 1315 score. No enemy health reduction, frozen enemies or player-stat boosts are used for this fight.
 - **Isolated combat checks:** keyboard hold/release charges for 40 damage even while normal fire is held; right-stick aim takes priority over stale mouse aim; hits expose health feedback; swept shots stop at arena walls; rigid-body grenade splash deals 48 damage; pause freezes and resume advances projectiles. Enemies are frozen only for these isolated collision/damage assertions.
 - **14 scenery and boarding checks:** walking/rays against imported containers, Flutter fuselage, harbour rails, shop and trees; navigation agreement; a complete stair climb from ground to hatch; measured hatch alignment and reachable boarding interaction; authored Run/Idle animations; solid cabin table and boss body.
+- **17 finishing checks:** native Quit button; cancelled charge/dash after menus; correct Escape navigation from credits; blocked/reachable interactions and physically reachable shop, bunk, workbench and exit prompts; collected plans remove both collision and navigation; shore barrier and below-map recovery preserve inventory and health.
 - **Self-contained exports:** Windows embedded pack and Web PCK mounted from an empty project. All four areas start, visible actor meshes have textures, music is available and tests/authoring tools are excluded.
 
 ## Rendered and browser checks

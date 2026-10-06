@@ -32,6 +32,7 @@ var defeated: bool=false
 var path: PackedVector3Array=[]
 var path_timer: float=0
 var step_time: float=0
+var last_safe_position:=Vector3.ZERO
 
 func _ready() -> void:
  collision_layer=2 if role=="player" else (8 if role=="npc" else 4)
@@ -45,7 +46,7 @@ func _ready() -> void:
  if kind=="sharukurusu":height=1.65
  if boss:height=4.2 if kind=="guardian" else 4.5
  visual=Models.make(kind,height);add_child(visual)
- home=position;max_health=health
+ home=position;last_safe_position=position;max_health=health
  ring=MeshInstance3D.new();var torus:=TorusMesh.new();torus.inner_radius=.35;torus.outer_radius=.45
  ring.mesh=torus;ring.position.y=.035
  var material:=StandardMaterial3D.new();material.albedo_color=Color("ff997c");material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -54,6 +55,10 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
  if not game.active() or defeated:return
+ if role=="player":
+  if position.y< -8:
+   position=last_safe_position+Vector3.UP*.35;velocity=Vector3.ZERO;knockback=Vector3.ZERO;cancel_actions();invincible=maxf(invincible,.9);game.toast("Back on solid ground.");return
+  if is_on_floor() and (game.area!="island" or Rect2(-21,-16,42,32).has_point(Vector2(position.x,position.z))):last_safe_position=position
  clock+=delta;invincible=maxf(0,invincible-delta);hit_time=maxf(0,hit_time-delta);flash_time=maxf(0,flash_time-delta)
  Models.flash(visual,flash_time*4)
  velocity.y=-.5 if is_on_floor() else velocity.y-24.0*delta
@@ -73,6 +78,10 @@ func _physics_process(delta: float) -> void:
  elif role=="enemy":
   ring.visible=phase=="windup"
   ring.scale=Vector3.ONE*(2.8 if boss else 1.5)
+
+func cancel_actions() -> void:
+ charge=0;dash_time=0;velocity.x=0;velocity.z=0
+ if is_instance_valid(ring):ring.visible=false
 
 func player_step(delta: float) -> void:
  shot_cooldown=maxf(0,shot_cooldown-delta);special_cooldown=maxf(0,special_cooldown-delta);dash_cooldown=maxf(0,dash_cooldown-delta);dash_time=maxf(0,dash_time-delta)
