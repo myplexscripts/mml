@@ -35,7 +35,8 @@ var step_time: float=0
 
 func _ready() -> void:
  collision_layer=2 if role=="player" else (8 if role=="npc" else 4)
- collision_mask=1|16|(8 if role=="player" else (2 if role=="npc" else 0))
+ floor_snap_length=.3;floor_constant_speed=true;floor_max_angle=deg_to_rad(48)
+ collision_mask=1|16|(8|4 if role=="player" else (2 if role=="npc" else 2|4))
  var collision:=CollisionShape3D.new();var shape:=CapsuleShape3D.new()
  shape.radius=.32 if not boss else .85;shape.height=1.6 if not boss else 3.5
  collision.shape=shape;collision.position.y=shape.height/2;add_child(collision)
@@ -55,7 +56,7 @@ func _physics_process(delta: float) -> void:
  if not game.active() or defeated:return
  clock+=delta;invincible=maxf(0,invincible-delta);hit_time=maxf(0,hit_time-delta);flash_time=maxf(0,flash_time-delta)
  Models.flash(visual,flash_time*4)
- velocity.y=-3.0
+ velocity.y=-.5 if is_on_floor() else velocity.y-24.0*delta
  if role=="player":player_step(delta)
  elif role=="enemy":enemy_step(delta)
  else:
@@ -112,15 +113,18 @@ func flat_direction(to: Vector3) -> Vector3:
 func fire(charged: bool=false) -> void:
  if shot_cooldown>0 or not game.active():return
  shot_cooldown=.38 if charged else maxf(.12,.26-game.state.rapid*.045)
- game.shoot(position+Vector3(0,.85,0)+facing*.5,facing*24,false,(40 if charged else 12)+game.state.power*6,charged)
+ visual.rotation.y=atan2(facing.x,facing.z);Models.pose(visual,walk_phase,velocity.length()>.2,true,false)
+ var muzzle: Vector3=Models.muzzle(visual)
+ game.shoot(muzzle,facing*24,false,(40 if charged else 12)+game.state.power*6,charged)
  game.audio.effect("buster",.7 if charged else randf_range(.94,1.04))
- game.spark(position+Vector3(0,.85,0)+facing*.8,Color("c2f5ed"),.1,.22 if charged else .12)
+ game.spark(muzzle,Color("c2f5ed"),.1,.22 if charged else .12)
 
 func special_fire() -> void:
  if not game.active() or special_cooldown>0:return
  if not game.state.grenade:game.toast("Roll can build a Grenade Arm from the eastern weapon plans.");return
  if game.state.energy<18:game.toast("The Grenade Arm needs 18 energy.");return
  game.state.energy-=18;special_cooldown=1.15
+ game.audio.effect("throw")
  game.throw_grenade(position+Vector3(0,1,0)+facing*.55,facing*8+Vector3.UP*4.0)
 
 func enemy_step(delta: float) -> void:
@@ -137,7 +141,7 @@ func enemy_step(delta: float) -> void:
     for i in range(count):
      var dir: Vector3=Vector3(sin(TAU*i/count+clock*.1),0,cos(TAU*i/count+clock*.1)) if boss else attack_direction
      game.shoot(position+Vector3(0,.8,0)+dir*(1.15 if boss else .5),dir*(6.5 if boss else 7.5),true,14 if boss else 8)
-    game.audio.effect("buster",.6)
+    game.audio.effect("mech_shot" if boss else "enemy_shot",1.0)
    if boss and attack_count%3==0 and game.enemies.size()<7:game.spawn_enemy("servbot" if kind=="feldynaught" else "horokko",game.world.safe_spawn(home+Vector3(3,0,2)),24)
  elif phase=="attack":
   timer-=delta

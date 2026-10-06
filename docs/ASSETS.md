@@ -1,6 +1,6 @@
 # Bundled assets and provenance
 
-Version 0.5 uses textured 3D character and machinery models, original environment geometry, imported terrain textures and Ogg audio. The earlier 2D assets remain in the repository for project history; the exported game includes only the current scene and its resources.
+Version 0.6 uses textured 3D character and machinery models, original environment geometry, imported terrain textures and Ogg audio. The earlier 2D assets remain in the repository for project history; the exported game includes only the current scene and its resources.
 
 
 ## Version 0.4 model resources
@@ -73,3 +73,25 @@ The tomato and sunflower sprites, seedlings, shop counter, stock shelves, cafe t
 Selected source PNGs are preserved in `assets/source/legends`. Run `python tools/build_legends_textures.py` to recreate all crops without downloading the full texture dump. The geometry, landings, staircase, radar, field log, card treatment and colour choices are authored in this project. These are actual runtime resources, not screenshot overlays.
 
 The Flutter retains its source model's upright landed orientation, with the deck above the cabin and the fin pointing upward. Landing supports, a boarding staircase and railings are authored around that orientation.
+
+
+## Version 0.6 resource import and art pass
+
+| Runtime assets | Source / credit | Conversion and use |
+| --- | --- | --- |
+| `assets/scenery/volnutt.glb` | [joshmnky MegaMan model](https://arcade.legends-station.com/dlr.php?dl=joshmnky_megaman), listed in [Sky Pirate Arcade models](https://arcade.legends-station.com/?id=resource-models) | MMV3.blend and MMV3.png. The correct MegaMap2 UV channel is preserved; rig controls and the duplicate prototype are omitted. The author's Run cycle is retained. A grounded Idle pose is added. This is a fan model in MML3 armour, not an original PS1 character rip. |
+| `assets/scenery/tree`, `lamp`, `shed`, `bakery`, `boat`, `harbour`, `hangar` GLBs | [Reaverbot Beatdown / Teomo City pack 1](https://arcade.legends-station.com/dlr.php?dl=beatdown_pack1), **tutsyroll and maximize** | Original blend meshes and authored texture atlases. PSD composites are converted to PNG. Leaf objects are merged to reduce draw calls. The hangar is one clipped and capped bay of the supplied harbour building; its roof uses an MML metal texture. |
+| `assets/models/flutter/model.glb`, `container/model.glb`, `drache/model.glb` | Existing **Xinus22 / Kion** model packs above | Static skeleton transforms are baked into the vertices before GLB export. This removes the hidden 100× skin transform and lets visible geometry and trimesh collision share one coordinate system. The landed ship is yawed, with its lower fin below the apron. |
+| `assets/scenery/buster.glb` | BusterGun mesh from the previously credited **Xinus22** MegaMan model | Isolated and baked with its original UVs and texture, centred on its long axis and attached to Volnutt's animated hand. Shots use the rendered Buster muzzle. |
+| `assets/interface/*` | [MML1 sprite sheet](https://www.legends-station.com/mml1/sprites1.png), **Legends Station / Capcom** | Weapon, bottle, Refractor, item and mission graphics are extracted; only connected white background is removed. The map uses the original pipe frame around this game's actual layout. The full source sheet is preserved. |
+| `assets/audio/flutter_theme.ogg`, `kattelox_ruins.ogg`, `feldynaught_theme.ogg` | [MML1 music downloads](https://www.legends-station.com/?id=mml1-music), **Capcom**; tracks 52, 13 and 23 | Selected instrumental segments, converted to Ogg with a one-second loop-boundary crossfade. These are game recordings, not project compositions. |
+| Current Buster, hit, hurt, item, menu, step, drink, throw, bounce, explosion, Reaverbot and mech effects | [MML1 SFX pack](https://arcade.legends-station.com/dlr.php?dl=greg_sfx1), contributed by **WarmLoafOfBread**, original audio **Capcom** | WAV recordings converted to Ogg. Exact source names: `sfx_BusterShoot`, `sfx_ReaverbotDamage`, `sfx_Hurt1`, `sfx_ItemGet`, `sfx_ButtonPress`, `sfx_Step`, `sfx_GlugGlug`, `sfx_GrenadeArmThrow`, `sfx_GrenadeArmBounce`, `sfx_GrenadeArmExplosion`, `sfx_HorokkoFire`, `sfx_MarlwolfShoot`. |
+
+The converted GLBs and runtime textures are bundled; the large external source archives are not. Rebuild the interface with `python tools/build_interface_assets.py`. To repeat model conversion, extract the two source packs so a directory contains `Teomo City Set/` and `josh/MMV3.blend` + `MMV3.png`, then run:
+
+```sh
+python tools/prepare_legends_sources.py /path/to/packs
+blender --background --python tools/import_legends_models.py -- /path/to/packs
+```
+
+Physics uses the baked static model geometry, dedicated trunk/rail shapes and a continuous boarding wedge. The 11.5 m ship's side hatch was measured by interpolating its texture UVs onto the mesh. The hatch at approximately `(-10.44, 1.95, -1.025)` meets the landing at `(-10.45, 2.0, -0.9)`. The ruin floor is offset above the foundation to prevent depth fighting.

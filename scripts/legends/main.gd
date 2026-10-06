@@ -93,6 +93,7 @@ func _process(delta: float) -> void:
  if area=="ruins":
   focus.x=clampf(focus.x,-10,10);focus.z=clampf(focus.z,-7,7)
  if area=="island" and mode!="title":
+  focus.y=1.2
   if player.position.x<5 and player.position.z> -5:focus=player.position.lerp(Vector3(-7,0,-3),.4)
   focus.x=clampf(focus.x,-12,12);focus.z=clampf(focus.z,-7,9)
  camera_focus=camera_focus.lerp(focus,1-exp(-delta*7))
@@ -145,7 +146,7 @@ func build_area(target: String, level: int, spawn: Vector3) -> void:
  world=World.new();world.game=self;world.area=target;world.depth=level;add_child(world);move_child(world,0)
  player=Actor.new();player.game=self;player.role="player";player.kind="megaman";player.position=spawn+Vector3.UP*.1;world.add_child(player)
  camera_focus=spawn
- audio.track("boss" if target=="bonne" else ("ruins" if target=="ruins" else "town"))
+ audio.track("feldynaught_theme" if target=="bonne" else ("kattelox_ruins" if target=="ruins" else "flutter_theme"))
 
 func travel(target: String, level: int=1, spawn: Vector3=Vector3(0,0,8)) -> void:
  if not transition.is_empty():return
@@ -334,7 +335,7 @@ func use_bottle() -> void:
  if not active():return
  if state.bottles<1:toast("No energy bottles. Visit the supply crate by the landing pad.");return
  if state.health>=state.max_health() and state.energy>=100:return
- state.bottles-=1;state.health=mini(state.max_health(),state.health+55);state.energy=minf(100,state.energy+45);state.save_game();audio.effect("item");toast("Energy bottle / +55 health, +45 energy.")
+ state.bottles-=1;state.health=mini(state.max_health(),state.health+55);state.energy=minf(100,state.energy+45);state.save_game();audio.effect("drink");toast("Energy bottle / +55 health, +45 energy.")
 
 func knock_out() -> void:
  if mode!="game":return

@@ -1,14 +1,14 @@
 # Mega Man Legends: Flutterbound
 
-A top-down Mega Man Legends fan adventure. Explore connected ruins, fight Reaverbots and Bonne machinery, salvage upgrades and return to your crew aboard the Flutter. Version **0.5.0** replaces the farming prototype with a focused action game using textured 3D models and an overhead camera.
+A top-down Mega Man Legends fan adventure. Explore connected ruins, fight Reaverbots and Bonne machinery, salvage upgrades and return to your crew aboard the Flutter. Version **0.6.0** replaces the farming prototype with a focused action game using textured 3D models and an overhead camera.
 
-![The Flutter landing](docs/screenshots/flutterbound-landing.png)
+![Boarding the Flutter at its connected hatch](docs/screenshots/flutterbound-boarding.png)
 
 ## Play
 
 Download **Flutterbound-Windows** from the latest successful [build workflow](https://github.com/myplexscripts/mml/actions/workflows/godot-check.yml), extract it and open `Flutterbound.exe`. No engine installation is needed. The Web build requires an HTTP server and a WebGL 2 browser. Open the source in **Godot 4.7.2** and press F5 to develop or play it.
 
-Version 0.5.0 corrects the Flutter's upright landed orientation and adds metal boarding stairs with a climbable collision ramp. Original MML terrain and machinery texture crops replace placeholder surfaces, and the original ItemContainer model replaces salvage boxes. The compact HUD includes a live radar, mission display and energy meter; the scrolling field log includes a posed 3D character preview. Existing Flutterbound saves remain compatible.
+Version 0.6.0 replaces the broken character import with joshmnky's textured, animated Volnutt model and a source Buster attached to its hand. The larger landed Flutter has a measured hatch connection, continuous stair collision and solid rails. Textured Teomo City scenery supplies trees, lamps, boats, the junk shop and a converted warehouse bay. Original MML interface sprites, music and sound effects replace more placeholders. Crates, ships, buildings, rocks, trees and furniture have collision; tall scenery fades when it hides the player. Existing Flutterbound saves remain compatible.
 
 ![Field log](docs/screenshots/flutterbound-status.png)
 
@@ -54,6 +54,6 @@ The workflow runs campaign and physics regressions, a normal-input Bonne combat 
 
 ![Bonne showdown](docs/screenshots/flutterbound-bonne.png)
 
-This is a playable fan-game chapter, not a recreation of the full original games. Crew and machinery use attributed model resources; environments are built for this project and character walking is procedurally posed. Windows exports are checked as self-contained packs, but native Windows execution has not been tested here.
+This is a playable fan-game chapter, not a recreation of the full original games. Crew and machinery use attributed model resources; the maps are authored for this project around imported scenery, and Volnutt uses an authored run animation. Windows exports are checked as self-contained packs, but native Windows execution has not been tested here.
 
-Mega Man Legends and related characters/designs belong to Capcom. Textured rips and the custom MegaMan model are contributed by **Xinus22**, with ripping tools by **Kion**, through Sky Pirate Arcade / Legends Station. Full source and audio credits: [ASSETS.md](docs/ASSETS.md). Unofficial, non-commercial fan project.
+Mega Man Legends and related characters/designs belong to Capcom. Textured rips are contributed by **Xinus22**, using **Kion**'s tools; the animated Volnutt is by **joshmnky** and Teomo scenery by **tutsyroll / maximize**, through Sky Pirate Arcade / Legends Station. Full source and audio credits: [ASSETS.md](docs/ASSETS.md). Unofficial, non-commercial fan project.

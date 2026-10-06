@@ -51,7 +51,6 @@ var radar: Control
 func plate(at: Vector2,dimensions: Vector2,accent: Color=GOLD) -> Panel:
  var node:=Panel.new();node.position=at;node.size=dimensions;node.mouse_filter=Control.MOUSE_FILTER_IGNORE
  node.add_theme_stylebox_override("panel",style(Color(.025,.09,.16,.9),Color("477792")));hud.add_child(node)
- var strip:=ColorRect.new();strip.position=Vector2(0,0);strip.size=Vector2(3,dimensions.y);strip.color=accent;strip.mouse_filter=Control.MOUSE_FILTER_IGNORE;node.add_child(strip)
  return node
 
 func _ready() -> void:
@@ -59,9 +58,9 @@ func _ready() -> void:
  hud=Control.new();hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);hud.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(hud)
  plate(Vector2(22,20),Vector2(278,82))
  health_text=label("MEGAMAN",20,GOLD);health_text.position=Vector2(38,27);hud.add_child(health_text)
- health=Meter.new();health.position=Vector2(38,58);health.size=Vector2(246,15);health.segmented=true;hud.add_child(health)
- energy=Meter.new();energy.position=Vector2(38,86);energy.size=Vector2(246,6);energy.tint=Color("62dcd3");hud.add_child(energy)
- var energy_tag:=label("EN",11,Color("7bb6c6"));energy_tag.position=Vector2(38,73);hud.add_child(energy_tag)
+ health=Meter.new();health.position=Vector2(38,58);health.size=Vector2(246,15);health.segmented=true;health.tint=Color("f1aa76");hud.add_child(health)
+ energy=Meter.new();energy.position=Vector2(62,82);energy.size=Vector2(222,6);energy.tint=Color("62dcd3");hud.add_child(energy)
+ var energy_tag:=label("EN",14,Color("7bb6c6"));energy_tag.position=Vector2(38,73);hud.add_child(energy_tag)
  plate(Vector2(336,20),Vector2(590,68),Color("62dcd3"))
  location_text=label("",14,Color("79b8cd"));location_text.position=Vector2(354,26);location_text.size=Vector2(554,19);hud.add_child(location_text)
  objective=label("",22);objective.position=Vector2(354,45);objective.size=Vector2(554,32);hud.add_child(objective)
@@ -72,14 +71,16 @@ func _ready() -> void:
  notice_panel=PanelContainer.new();notice_panel.position=Vector2(360,110);notice_panel.size=Vector2(560,56);notice_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE;hud.add_child(notice_panel)
  notice=label("",20);notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;notice.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;notice_panel.add_child(notice)
  plate(Vector2(22,620),Vector2(294,74),Color("62dcd3"))
- var title:=label("BUSTER / SPECIAL",13,Color("79b8cd"));title.position=Vector2(40,628);hud.add_child(title)
+ var hud_buster:=sprite("buster",Vector2(36,30));hud_buster.position=Vector2(272,643);hud.add_child(hud_buster)
+ var hud_refractor:=sprite("refractor",Vector2(22,30));hud_refractor.position=Vector2(1087,30);hud.add_child(hud_refractor)
+ var title:=label("BUSTER / SPECIAL",14,Color("79b8cd"));title.position=Vector2(40,628);hud.add_child(title)
  weapon=label("",18,GOLD);weapon.position=Vector2(40,650);weapon.size=Vector2(265,30);hud.add_child(weapon)
  combo=label("",24,GOLD);combo.position=Vector2(940,116);combo.size=Vector2(312,30);combo.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;hud.add_child(combo)
  var controls:=label("WASD  MOVE    J  FIRE    SHIFT  DASH    K  LOCK    ESC  FIELD LOG",15,Color("c9ddd9"));controls.position=Vector2(354,672);controls.size=Vector2(580,24);controls.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(controls)
  var heal:=button("Q  BOTTLE",func():game.use_bottle());heal.name="HealButton";heal.position=Vector2(1034,646);heal.size=Vector2(132,48);heal.focus_mode=Control.FOCUS_NONE;hud.add_child(heal)
  var menu_button:=button("MENU",func():game.ui.pause_screen("Status"));menu_button.position=Vector2(1174,646);menu_button.size=Vector2(84,48);menu_button.focus_mode=Control.FOCUS_NONE;hud.add_child(menu_button)
  plate(Vector2(1080,455),Vector2(178,178),Color("62dcd3"))
- var map_label:=label("RADAR / M  MAP",13,Color("79b8cd"));map_label.position=Vector2(1094,461);hud.add_child(map_label)
+ var map_label:=label("RADAR / M  MAP",14,Color("79b8cd"));map_label.position=Vector2(1094,461);hud.add_child(map_label)
  radar=Control.new();radar.position=Vector2(1090,487);radar.size=Vector2(158,135);radar.mouse_filter=Control.MOUSE_FILTER_IGNORE;hud.add_child(radar);radar.draw.connect(draw_radar)
  boss_label=label("",20,GOLD);boss_label.position=Vector2(430,534);boss_label.size=Vector2(420,28);boss_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(boss_label)
  boss_bar=Meter.new();boss_bar.position=Vector2(430,565);boss_bar.size=Vector2(420,12);boss_bar.tint=Color("e27a60");hud.add_child(boss_bar)
@@ -107,7 +108,7 @@ func draw_radar() -> void:
  radar.draw_circle(pos,3,GOLD);radar.draw_line(pos,pos+Vector2(game.player.facing.x,game.player.facing.z)*7,GOLD,1.5,true)
 
 func style(colour: Color,border: Color=Color("567689")) -> StyleBoxFlat:
- var s:=StyleBoxFlat.new();s.bg_color=colour;s.border_color=border;s.set_border_width_all(1);s.corner_radius_top_left=5;s.corner_radius_bottom_right=5;s.shadow_color=Color(0,0,0,.3);s.shadow_size=5;s.content_margin_left=18;s.content_margin_right=18;s.content_margin_top=12;s.content_margin_bottom=12;return s
+ var s:=StyleBoxFlat.new();s.bg_color=colour;s.border_color=border;s.set_border_width_all(1);s.corner_radius_top_left=0;s.corner_radius_bottom_right=0;s.shadow_color=Color(0,0,0,.3);s.shadow_size=5;s.content_margin_left=18;s.content_margin_right=18;s.content_margin_top=12;s.content_margin_bottom=12;return s
 func theme() -> Theme:
  var t:=Theme.new();t.default_font=font;t.default_font_size=20
  for key in ["Label","Button","RichTextLabel"]:t.set_color("font_color",key,WHITE)
@@ -120,7 +121,10 @@ func theme() -> Theme:
 func label(text: String,size: int=18,colour: Color=WHITE) -> Label:
  var node:=Label.new();node.text=text;node.add_theme_font_size_override("font_size",size);node.add_theme_color_override("font_color",colour);node.add_theme_color_override("font_outline_color",Color("152f41"));node.add_theme_constant_override("outline_size",2);node.mouse_filter=Control.MOUSE_FILTER_IGNORE;return node
 func button(text: String,callable: Callable) -> Button:
- var node:=Button.new();node.text=text;node.custom_minimum_size=Vector2(0,52);node.pressed.connect(callable);return node
+ var node:=Button.new();node.text=text;node.custom_minimum_size=Vector2(0,52);node.pressed.connect(func():game.audio.effect("select");callable.call());return node
+func sprite(key: String,dimensions: Vector2) -> TextureRect:
+ var image:=TextureRect.new();image.texture=load("res://assets/interface/"+key+".png");image.texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST;image.custom_minimum_size=dimensions;image.size=dimensions;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;image.mouse_filter=Control.MOUSE_FILTER_IGNORE;return image
+
 func clear_overlay() -> void:
  for child in overlay.get_children():child.queue_free()
  portrait=null
@@ -137,7 +141,7 @@ func title_screen() -> void:
  game.mode="title";clear_overlay()
  var box:=panel(Rect2(54,130,476,466))
  box.add_child(label("MEGA MAN LEGENDS",17,GOLD))
- box.add_child(label("FLUTTERBOUND",52,GOLD))
+ box.add_child(label("FLUTTERBOUND",54,WHITE))
  var subtitle:=label("A top-down Digger adventure",20);box.add_child(subtitle)
  var gap:=Control.new();gap.custom_minimum_size.y=24;box.add_child(gap)
  var new_button:=button("New adventure",func():
@@ -146,14 +150,14 @@ func title_screen() -> void:
  new_button.name="NewAdventure";box.add_child(new_button)
  var load_button:=button("Continue",func():game.continue_game());load_button.name="ContinueAdventure";load_button.disabled=not game.state.save_exists();box.add_child(load_button)
  var credits:=button("Controls and credits",func():credits_screen());box.add_child(credits)
- box.add_child(label("v0.5.0 / Unofficial fan adventure",14,Color("aac8c7")))
+ box.add_child(label("v0.6.0 / Unofficial fan adventure",14,Color("aac8c7")))
  new_button.grab_focus()
 
 func credits_screen() -> void:
  var from_pause: bool=game.mode=="pause"
  clear_overlay();shade(.75);var box:=panel(Rect2(165,82,950,556))
  box.add_child(label("CONTROLS & CREDITS",28,GOLD))
- for text in ["WASD / arrows: move. Left click or J: fire. K: lock on. Shift: dash.","Hold right click / H / RT, then release: charged shot. L: Grenade Arm. Q: bottle.","E / F / Space: interact. Esc: pause. M: map. Tab: equipment. F11: fullscreen.","Controller: left stick moves, right stick aims, X fires, RB dashes, LB locks.","A interacts, B fires grenades, Y uses a bottle, Start pauses. Mouse wheel: zoom.","Mega Man Legends characters and original assets belong to Capcom.","Textured model rips and MegaMan fan model: Xinus22, using tools by Kion.","Models sourced from Sky Pirate Arcade / Legends Station. Full credits: docs/ASSETS.md.","Original music and environment construction: this fan project."]:
+ for text in ["WASD / arrows: move. Left click or J: fire. K: lock on. Shift: dash.","Hold right click / H / RT, then release: charged shot. L: Grenade Arm. Q: bottle.","E / F / Space: interact. Esc: pause. M: map. Tab: equipment. F11: fullscreen.","Controller: left stick moves, right stick aims, X fires, RB dashes, LB locks.","A interacts, B fires grenades, Y uses a bottle, Start pauses. Mouse wheel: zoom.","Mega Man Legends characters and original assets belong to Capcom.","Original model rips: Xinus22 / Kion. Animated Volnutt: joshmnky.","Models sourced from Sky Pirate Arcade / Legends Station. Full credits: docs/ASSETS.md.","Teomo scenery: tutsyroll / maximize. UI sprites: Legends Station / Capcom."]:
   box.add_child(label(text,17))
  var back:=button("Back",func():pause_screen("Options") if from_pause else title_screen());box.add_child(back);back.grab_focus()
 
@@ -180,9 +184,9 @@ func dialogue_screen(person: String,lines: Array,after: String="") -> void:
  var portrait_root:=Node3D.new();portrait.add_child(portrait_root)
  var keys: Dictionary={"Roll":"roll","Data":"data","Barrell":"barrell","Tron":"tron"}
  var character=preload("res://scripts/legends/models.gd").make(keys.get(person,"megaman"),2.0);portrait_root.add_child(character)
- var light:=DirectionalLight3D.new();light.rotation_degrees=Vector3(-35,-25,0);light.light_energy=1.5;portrait_root.add_child(light)
- var env:=WorldEnvironment.new();env.environment=Environment.new();env.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;env.environment.ambient_light_color=Color.WHITE;env.environment.ambient_light_energy=.8;portrait_root.add_child(env)
- var cam:=Camera3D.new();cam.position=Vector3(0,1.35,3.2);cam.projection=Camera3D.PROJECTION_ORTHOGONAL;cam.size=2.4;portrait_root.add_child(cam);cam.look_at_from_position(cam.position,Vector3(0,1.1,0));portrait_root.add_child(Node3D.new())
+ var light:=DirectionalLight3D.new();light.rotation_degrees=Vector3(-35,-25,0);light.light_energy=.8;portrait_root.add_child(light)
+ var env:=WorldEnvironment.new();env.environment=Environment.new();env.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;env.environment.ambient_light_color=Color.WHITE;env.environment.ambient_light_energy=.45;portrait_root.add_child(env)
+ var cam:=Camera3D.new();cam.position=Vector3(0,1.35,3.2);cam.projection=Camera3D.PROJECTION_ORTHOGONAL;cam.size=2.2 if person=="Data" else 1.4;portrait_root.add_child(cam);cam.look_at_from_position(cam.position,Vector3(0,1.0 if person=="Data" else 1.48,0));portrait_root.add_child(Node3D.new())
  var portrait_control:=TextureRect.new();portrait_control.custom_minimum_size=Vector2(188,188);portrait_control.texture=portrait.get_texture();portrait_control.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;portrait_control.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;layout.add_child(portrait_control);portrait_control.add_child(portrait)
  var column:=VBoxContainer.new();column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;column.add_theme_constant_override("separation",8);layout.add_child(column)
  var header:=HBoxContainer.new();column.add_child(header);var name_label:=label(person.to_upper(),22,GOLD);name_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.add_child(name_label);header.add_child(label("ROLL RADIO" if game.area=="ruins" else "E / A  CONTINUE",14,Color("a8cace")))
@@ -199,8 +203,8 @@ func advance_dialogue() -> void:
 func pause_screen(tab: String="Status") -> void:
  game.mode="pause";pause_tab=tab;clear_overlay()
  var background:=ColorRect.new();background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);overlay.add_child(background)
- var shader:=Shader.new();shader.code="shader_type canvas_item; uniform bool still=false; void fragment(){vec2 p=UV;float t=still?0.0:TIME*.025;float s=step(.48,fract((p.x-p.y+t)*10.0));COLOR=vec4(mix(vec3(.045,.16,.27),vec3(.07,.23,.36),s),1.0);}"
- var mat:=ShaderMaterial.new();mat.shader=shader;mat.set_shader_parameter("still",game.state.reduced_motion);background.material=mat
+ var shader:=Shader.new();shader.code="shader_type canvas_item; uniform bool still=false; uniform sampler2D emblem:filter_nearest,repeat_enable; void fragment(){float t=still?0.0:TIME*.018;vec2 p=UV*vec2(11.0,6.0)+vec2(t,-t);vec4 mark=texture(emblem,fract(p));float line=step(.988,fract((UV.x+UV.y+t)*32.0));vec3 base=mix(vec3(.018,.055,.17),vec3(.036,.15,.34),UV.y);COLOR=vec4(base+mark.a*.018+line*.022,1.0);}"
+ var mat:=ShaderMaterial.new();mat.shader=shader;mat.set_shader_parameter("still",game.state.reduced_motion);mat.set_shader_parameter("emblem",load("res://assets/interface/buster.png"));background.material=mat
  var title:=label("DIGGERS FIELD LOG",36,GOLD);title.position=Vector2(64,32);overlay.add_child(title)
  var stats:=label("%d Z    SCORE %d"%[game.state.zenny,game.state.score],22);stats.position=Vector2(780,43);stats.size=Vector2(436,34);stats.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;overlay.add_child(stats)
  var tabs:=HBoxContainer.new();tabs.position=Vector2(64,96);tabs.size=Vector2(1152,54);tabs.add_theme_constant_override("separation",8);overlay.add_child(tabs)
@@ -232,11 +236,16 @@ func pause_screen(tab: String="Status") -> void:
    info.add_child(label("SHOT  %d DMG     CHARGED  %d DMG"%[12+game.state.power*6,40+game.state.power*6],21,Color("62dcd3")))
    info.add_child(label("GRENADE ARM / FITTED" if game.state.grenade else "SPECIAL WEAPON / NOT FITTED",22,GOLD))
    var detail:=label("L / B to launch • 18 energy" if game.state.grenade else "Find the eastern weapon plans, then see Roll.",20);detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;info.add_child(detail)
-   info.add_child(label("SCRAP  %d     SHARDS  %d     BOTTLES  %d"%[game.state.scrap,game.state.shards,game.state.bottles],22))
+   var equipment:=HBoxContainer.new();equipment.add_theme_constant_override("separation",24);info.add_child(equipment)
+   for item in [["buster","BUSTER"],["tool","SCRAP  %d"%game.state.scrap],["refractor","SHARDS  %d"%game.state.shards],["bottle","BOTTLES  %d"%game.state.bottles]]:
+    var slot:=VBoxContainer.new();slot.add_child(sprite(item[0],Vector2(72,56)));slot.add_child(label(item[1],17,GOLD));equipment.add_child(slot)
    info.add_child(label("REPAIR PARTS / "+(", ".join(game.state.parts).to_upper() if not game.state.parts.is_empty() else "NONE CARRIED"),20))
    info.add_child(label("K / LB locks onto a visible enemy. H / RT charges the Buster.",18,Color("9bbbc8")))
   "Map":
-   var map:=Control.new();map.custom_minimum_size=Vector2(1100,350);box.add_child(map);map.draw.connect(func():draw_map(map));map.queue_redraw()
+   var map:=Control.new();map.custom_minimum_size=Vector2(1100,350);box.add_child(map)
+   var frame:=NinePatchRect.new();frame.texture=load("res://assets/interface/map_frame.png");frame.position=Vector2(250,0);frame.size=Vector2(610,348);frame.texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
+   frame.patch_margin_left=24;frame.patch_margin_right=24;frame.patch_margin_top=24;frame.patch_margin_bottom=24;frame.mouse_filter=Control.MOUSE_FILTER_IGNORE;map.add_child(frame)
+   map.draw.connect(func():draw_map(map));map.queue_redraw()
   "Journal":
    box.add_child(label(game.objective(),26,GOLD))
    for text in ["1. Start the repair plan with Roll, then recover the Servo Motor on level 1.","2. Defeat the northern Hanmuru Doll and return the Ancient Circuit from level 2.","3. Challenge Tron's Feldynaught on the landing pad to open the Refractor core.","4. Defeat the core guardian, recover the Large Refractor and bring it home.","Break salvage for scrap and shards. Spend Zenny on Buster upgrades and bottles.","The Flutter cabin and Data restore your health. Defeat keeps your repair parts."]:
@@ -281,7 +290,7 @@ func draw_map(canvas: Control) -> void:
  canvas.draw_string(font,Vector2(20,112),"RED / GUARDIAN",HORIZONTAL_ALIGNMENT_LEFT,-1,18,Color("e99577"))
 
 func summary(title: String,lines: Array) -> void:
- game.mode="summary";clear_overlay();shade(.75);var box:=panel(Rect2(252,175,776,370));box.add_child(label(title,32,GOLD))
+ game.mode="summary";clear_overlay();shade(.75);var box:=panel(Rect2(252,175,776,370));box.add_child(sprite("mission_complete",Vector2(370,40)));box.add_child(label(title,32,GOLD))
  for text in lines:box.add_child(label(str(text),22))
  var b:=button("Keep exploring Kattelox",func():game.resume_game());box.add_child(b);b.grab_focus()
 

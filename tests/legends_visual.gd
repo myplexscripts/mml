@@ -11,10 +11,15 @@ func close_dialogue():
   game.ui.dialogue_text.visible_characters=game.ui.dialogue_text.get_total_character_count();game.ui.advance_dialogue()
  await frames()
 func run():
+ DirAccess.make_dir_recursive_absolute("res://test-results")
  game=load("res://scenes/legends.tscn").instantiate();root.add_child(game);await capture("title")
  game.start_new();game.ui.type_clock=9999;await capture("dialogue");await close_dialogue()
  await capture("flutter")
- game.player.position=Vector3(-3,0,4);await frames(45);await capture("landing")
+ game.player.position=Vector3(-4.4,0,5.9);await frames(45);await capture("landing")
+ game.player.position=game.world.get_meta("boarding_bottom");await frames(4)
+ Input.action_press("move_up")
+ for tick in range(65):await physics_frame
+ Input.action_release("move_up");await frames(20);await capture("boarding")
  for tab in ["Status","Equipment","Map","Journal","Options"]:game.ui.pause_screen(tab);await capture(tab.to_lower())
  game.resume_game();game.build_area("cabin",1,Vector3(0,0,3));await capture("cabin")
  game.open_workshop();await capture("workshop")

@@ -33,10 +33,15 @@ func to_data() -> Dictionary:
  for key in ["camera_zoom","health","energy","zenny","scrap","shards","bottles","score","best_run","repair","parts","quest_started","tron_defeated","completed","power","rapid","armour","grenade","weapon_plans","relics","claimed","deepest","music","sound","reduced_motion"]:data[key]=get(key)
  return data
 func save_game() -> bool:
- var file:=FileAccess.open(SAVE_PATH+".tmp",FileAccess.WRITE)
+ # Browser persistence is already a transactional IndexedDB operation. Closing
+ # the final filename lets Godot sync the changed data; renaming after close
+ # could leave its persisted filename one save behind.
+ var browser: bool=OS.has_feature("web")
+ var destination: String=SAVE_PATH if browser else SAVE_PATH+".tmp"
+ var file:=FileAccess.open(destination,FileAccess.WRITE)
  if not file:return false
  file.store_string(JSON.stringify(to_data()));file.close()
- return DirAccess.rename_absolute(SAVE_PATH+".tmp",SAVE_PATH)==OK
+ return true if browser else DirAccess.rename_absolute(destination,SAVE_PATH)==OK
 func load_game() -> bool:
  var file:=FileAccess.open(SAVE_PATH,FileAccess.READ)
  if not file:return false

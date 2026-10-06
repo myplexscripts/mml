@@ -6,6 +6,7 @@ var voice_index: int = 0
 var current_track: String = ""
 var sounds: Dictionary = {}
 var playback_enabled: bool = true
+var last_select_ms: int=-1000
 
 func _ready() -> void:
 	# Headless checks have no audio output. Avoid starting silent playback jobs
@@ -19,7 +20,7 @@ func _ready() -> void:
 		voice.volume_db = -16
 		add_child(voice)
 		voices.append(voice)
-	for name in ["buster","item","hurt","hit","explosion","door","select","water","step","plant"]:
+	for name in ["buster","item","hurt","hit","explosion","door","select","water","step","plant","enemy_shot","mech_shot","drink","throw","bounce"]:
 		var path := "res://assets/audio/%s.ogg" % name
 		if ResourceLoader.exists(path): sounds[name] = load(path)
 
@@ -38,6 +39,10 @@ func track(name: String) -> void:
 
 func effect(name: String, pitch: float = 1.0) -> void:
 	if not playback_enabled or not game.state.sound or not sounds.has(name): return
+	if name=="select":
+		var now: int=Time.get_ticks_msec()
+		if now-last_select_ms<45:return
+		last_select_ms=now
 	var voice := voices[voice_index]
 	voice_index = (voice_index + 1) % voices.size()
 	voice.stream = sounds[name]

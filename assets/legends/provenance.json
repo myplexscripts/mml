@@ -133,6 +133,16 @@
         64,
         32
       ]
+    },
+    {
+      "file": "rock.png",
+      "source": "tex_fab_gamerip1.png",
+      "crop": [
+        66,
+        33,
+        98,
+        65
+      ]
     }
   ]
 }

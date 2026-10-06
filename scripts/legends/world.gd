@@ -11,6 +11,7 @@ var nav:=AStarGrid2D.new()
 var bounds:=Rect2(-23,-18,46,38)
 var repair_visuals: Array=[]
 var batches: Dictionary={}
+var occluders: Array[Node3D]=[]
 var ambient: WorldEnvironment
 var cell_size: float=1.4
 const ART="res://assets/legends/"
@@ -23,6 +24,20 @@ func _ready() -> void:
  elif area=="bonne":build_bonne()
  else:build_ruins()
  finish_batches();build_navigation()
+
+func _physics_process(delta: float) -> void:
+ if not game.active() or occluders.is_empty():return
+ var query:=PhysicsRayQueryParameters3D.create(game.camera.global_position,game.player.global_position+Vector3.UP*1.1,1)
+ var result:=get_world_3d().direct_space_state.intersect_ray(query)
+ var obstruction: Node3D=null
+ if not result.is_empty() and result.collider.get_parent() in occluders:obstruction=result.collider.get_parent()
+ for visual in occluders:
+  var target: float=.32 if visual==obstruction else 1.0
+  var alpha: float=move_toward(visual.get_meta("occlusion_alpha",1.0),target,delta*4.0)
+  visual.set_meta("occlusion_alpha",alpha)
+  for mat in visual.get_meta("materials"):
+   mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS if alpha<.99 else BaseMaterial3D.TRANSPARENCY_DISABLED
+   mat.albedo_color.a=alpha
 
 func material(colour: Color, texture: String="") -> StandardMaterial3D:
  var mat:=StandardMaterial3D.new();mat.albedo_color=colour;mat.roughness=.9
@@ -57,12 +72,25 @@ func wall_collision(at: Vector3,size: Vector3) -> void:
  var collision:=CollisionShape3D.new();var shape:=BoxShape3D.new();shape.size=size;collision.shape=shape;body.add_child(collision);add_child(body)
  walls.append(Rect2(at.x-size.x/2,at.z-size.z/2,size.x,size.z))
 
-func cylinder(at: Vector3, radius: float, height: float, colour: Color) -> MeshInstance3D:
+func cylinder(at: Vector3, radius: float, height: float, colour: Color, collision: bool=false) -> MeshInstance3D:
  var mesh:=MeshInstance3D.new();var shape:=CylinderMesh.new();shape.top_radius=radius;shape.bottom_radius=radius;shape.height=height;shape.radial_segments=12
- mesh.mesh=shape;mesh.material_override=material(colour);mesh.position=at;add_child(mesh);return mesh
+ mesh.mesh=shape;mesh.material_override=material(colour);mesh.position=at;add_child(mesh)
+ if collision:
+  var body:=StaticBody3D.new();body.position=at;body.collision_layer=1;body.collision_mask=0;add_child(body)
+  var col:=CollisionShape3D.new();var physics:=CylinderShape3D.new();physics.radius=radius;physics.height=height;col.shape=physics;body.add_child(col)
+  walls.append(Rect2(at.x-radius,at.z-radius,radius*2,radius*2))
+ return mesh
 
-func model(key: String, at: Vector3, height: float, rotation_y: float=0) -> Node3D:
- var visual:=Models.make(key,height);visual.position=at;visual.rotation.y=rotation_y;add_child(visual);return visual
+func model(key: String, at: Vector3, height: float, rotation_y: float=0, solid: bool=true) -> Node3D:
+ var visual:=Models.make(key,height);visual.position=at;visual.rotation.y=rotation_y;add_child(visual)
+ if solid:
+  if key in ["flutter","drache","hangar","harbour","bakery"]:occluders.append(visual)
+  var body:=StaticBody3D.new();body.name="SolidProp";body.collision_layer=1;body.collision_mask=0;visual.add_child(body)
+  for mesh in visual.find_children("*","MeshInstance3D",true,false):
+   var col:=CollisionShape3D.new();col.shape=mesh.mesh.create_trimesh_shape();col.transform=visual.global_transform.affine_inverse()*mesh.global_transform;body.add_child(col)
+  var aabb: AABB=visual.transform*visual.get_meta("bounds")
+  walls.append(Rect2(aabb.position.x,aabb.position.z,aabb.size.x,aabb.size.z))
+ return visual
 
 func setup_light() -> void:
  var ruins: bool=area=="ruins"
@@ -81,46 +109,46 @@ func interact(name_text: String, at: Vector3, action: String, extra: Dictionary=
 
 func build_island() -> void:
  bounds=Rect2(-23,-18,46,38)
- var water:=box(Vector3(0,-.55,0),Vector3(180,.1,180),Color("579fac"))
- var shader:=Shader.new();shader.code="shader_type spatial; render_mode unshaded; uniform vec4 base : source_color=vec4(0.23,0.54,0.63,1.0); void fragment(){float wave=sin(UV.x*240.0+TIME*.65)*sin(UV.y*210.0-TIME*.45);ALBEDO=base.rgb+vec3(wave*.026);ROUGHNESS=0.75;}"
- var water_material:=ShaderMaterial.new();water_material.shader=shader;water.material_override=water_material
+ var water:=box(Vector3(0,-.65,0),Vector3(180,.1,180),Color("579fac"))
+ var shader:=Shader.new();shader.code="shader_type spatial; render_mode unshaded; uniform vec4 base : source_color=vec4(0.23,0.54,0.63,1.0); uniform sampler2D rip:filter_nearest,repeat_enable; void fragment(){float wave=sin(UV.x*240.0+TIME*.65)*sin(UV.y*210.0-TIME*.45);ALBEDO=mix(base.rgb,texture(rip,UV*48.0+vec2(TIME*.002,0.0)).rgb*.55,.22)+vec3(wave*.026);ROUGHNESS=0.75;}"
+ var water_material:=ShaderMaterial.new();water_material.shader=shader;water_material.set_shader_parameter("rip",load(ART+"water.png"));water.material_override=water_material
  box(Vector3(0,-.25,0),Vector3(44,.5,34),Color("577c61"),true)
  for x in range(-21,22,2):
   for z in range(-15,16,2):
-   batch_box(Vector3(x,.002,z),Vector3(2,.008,2),Color("a6b6a1"),ART+("grass_worn.png" if (x*7+z*11)%5==0 else "grass.png"))
+   batch_box(Vector3(x,.002,z),Vector3(2,.008,2),Color("7a9464"),ART+("grass_worn.png" if (x*7+z*11)%5==0 else "grass.png"))
  box(Vector3(0,-.7,0),Vector3(44,1.2,34),Color("858878"),false,ART+"sand.png")
  # Traversable pale landing apron, paths and a ruin lift.
- box(Vector3(-5,.005,3),Vector3(22,.035,16),Color("8c958f"))
+ box(Vector3(-5,.005,3),Vector3(22,.035,16),Color("aaa08a"))
  box(Vector3(6,.012,-4),Vector3(4,.045,21),Color("b6bbab"),false,ART+"sand.png")
  for x in range(-16,7,2):
-  for z in range(-4,12,2):batch_box(Vector3(x,.03,z),Vector3(2,.015,2),Color(.9,.96,1.4),ART+"sand.png")
+  for z in range(-4,12,2):batch_box(Vector3(x,.03,z),Vector3(2,.015,2),Color("b0aaa0"),ART+"sand.png")
  for x in range(-22,23,2):
   box(Vector3(x,.1,-16.8),Vector3(1.9,.35,.55),Color("aaa987"))
   box(Vector3(x,.1,16.8),Vector3(1.9,.35,.55),Color("aaa987"))
  # The Flutter lands upright: deck above cabin, fin pointing skyward.
- var ship=model("flutter",Vector3(-9,.25,-1),6.5)
+ var ship=model("flutter",Vector3(-10,-3.45,-3),11.5,-PI/2)
  ship.name="LandedFlutter";ship.rotation.y=-PI/2
- box(Vector3(-9,1.25,-1),Vector3(5.5,2.5,5.5),Color(0,0,0,0),true).visible=false
- for x in [-11.0,-7.0]:
-  cylinder(Vector3(x,.17,-1.6),.65,.34,Color("495862"))
-  cylinder(Vector3(x,.5,-1.6),.16,.8,Color("a2acb0"))
- boarding_stairs(Vector3(-5.4,0,3.9))
+ for x in [-13.0,-7.0]:
+  cylinder(Vector3(x,.17,-3.7),.65,.34,Color("495862"))
+  cylinder(Vector3(x,.5,-3.7),.16,.8,Color("a2acb0"))
+ boarding_stairs(Vector3(-10.45,0,3.2))
  # Painted apron markings and a tidy service bay.
  for x in [-17.0,6.0]:box(Vector3(x,.049,3.3),Vector3(.13,.02,14),Color("eadab4"))
  for z in [-3.8,10.8]:box(Vector3(-5.5,.049,z),Vector3(23,.02,.13),Color("eadab4"))
  for i in range(8):box(Vector3(-16+i*.55,.052,10.4),Vector3(.3,.02,.65),Color("eed07e")).rotation.y=.35
- for at in [Vector3(10,0,6),Vector3(13,0,7.4),Vector3(-16,0,5)]:
+ for at in [Vector3(10,0,6),Vector3(11.0,0,6),Vector3(-16,0,5),Vector3(-15,0,5),Vector3(-16,.85,5),Vector3(7.8,0,-1.8)]:
   model("container",at,.85)
  for z in [-9.0,-6.5,12.0,14.5]:
   railing(Vector3(20,.2,z),2.3)
  for x in [-18.0,-15.0,-12.0,-9.0]:railing(Vector3(x,.2,16),2.7,PI/2)
  var repair_light:=OmniLight3D.new();repair_light.position=Vector3(-9,2,1);repair_light.light_color=Color("7ed8b3");repair_light.light_energy=.8;repair_light.omni_range=9;add_child(repair_light)
  repair_light.visible=game.state.repair>=3;repair_visuals.append(repair_light)
- for entry in [[Vector3(-2,0,5),"Roll","roll"],[Vector3(3,0,8),"Data","data"],[Vector3(-14,0,8),"Barrell","barrell"]]:game.spawn_npc(entry[1],entry[2],entry[0])
- interact("Board the Flutter",Vector3(-5.4,0,4.9),"cabin")
+ for entry in [[Vector3(-6.6,0,5),"Roll","roll"],[Vector3(1,0,8),"Data","data"],[Vector3(-14,0,8),"Barrell","barrell"]]:game.spawn_npc(entry[1],entry[2],entry[0])
+ interact("Board the Flutter",Vector3(-10.45,2.0,-.85),"cabin")
  interact("Northern Ruins",Vector3(6,0,-12),"lift")
- interact("Supply crate",Vector3(13,0,5),"shop")
- sign_at("FLUTTER • HOME BASE",Vector3(-9,1.1,3))
+ interact("Junk shop",Vector3(6,0,-1.9),"shop")
+ interact("Surface workbench",Vector3(6,0,6.6),"workshop")
+ sign_at("FLUTTER",Vector3(-12,.9,4.4))
  sign_at("NORTHERN RUINS",Vector3(6,2.8,-12))
  # Stone arch, steps and physical side walls.
  for x in [3.9,8.1]:box(Vector3(x,1.4,-12),Vector3(1.0,2.8,2),Color("c0c8b1"),true,ART+"wall.png")
@@ -128,14 +156,28 @@ func build_island() -> void:
  cylinder(Vector3(6,.04,-12),1.35,.12,Color("397b83"))
  for z in [-13,-12.5,-12]:box(Vector3(6,.12,z),Vector3(2,.12,.25),Color("bbd1b6"))
  model("drache",Vector3(14,0,-6),4.0,PI*.8)
- box(Vector3(13,.35,5),Vector3(1.7,.7,1.2),Color("a7b5aa"),true,ART+"metal.png")
- sign_at("SUPPLIES",Vector3(13,1.5,5))
+ box(Vector3(6,.35,6.1),Vector3(1.9,.7,1.0),Color("929b8e"),true,ART+"metal.png")
+ sign_at("JUNK SHOP",Vector3(6,2.0,-2.7))
  for at in [Vector3(-19,0,-12),Vector3(-17,0,-10),Vector3(-13,0,-13),Vector3(-4,0,-13),Vector3(0,0,-11),Vector3(12,0,-13),Vector3(19,0,-11),Vector3(19,0,-3),Vector3(18,0,9),Vector3(12,0,14),Vector3(2,0,14),Vector3(-15,0,14),Vector3(-20,0,8)]:tree(at)
  for i in range(25):
   var at:=Vector3(-20+float((i*17)%40),.12,-15+float((i*7)%31))
   if at.x<7 and at.x>-17 and at.z>-6 and at.z<12:continue
   var rock:=SphereMesh.new();rock.height=.5;rock.radius=.4;rock.radial_segments=6;rock.rings=3
-  var mesh:=MeshInstance3D.new();mesh.mesh=rock;mesh.position=at;mesh.scale=Vector3(1.4,.7,1);mesh.material_override=material(Color("8b9d7b"));add_child(mesh)
+  var mesh:=MeshInstance3D.new();mesh.mesh=rock;mesh.position=at;mesh.scale=Vector3(1.4,.7,1);mesh.material_override=material(Color("a2ab8e"),ART+"rock.png");add_child(mesh)
+  var body:=StaticBody3D.new();body.collision_layer=1;body.collision_mask=0;add_child(body)
+  var col:=CollisionShape3D.new();col.shape=rock.create_convex_shape();col.transform=mesh.transform;body.add_child(col)
+  var footprint: AABB=mesh.transform*mesh.get_aabb();walls.append(Rect2(footprint.position.x,footprint.position.z,footprint.size.x,footprint.size.z))
+ # Textured harbour scenery from the Legends Station Teomo City resource pack.
+ model("hangar",Vector3(6,0,4),5.8,0)
+ model("bakery",Vector3(6,0,-5),5.8,0)
+ model("shed",Vector3(-16,0,-3.3),1.9,PI/2)
+ for at in [Vector3(-17,0,10.5),Vector3(11,0,8),Vector3(8,0,-8),Vector3(-3,0,4)]:
+  model("lamp",at,3.5,0,false)
+  cylinder(at+Vector3.UP*.9,.14,1.8,Color("73847c"),true)
+  var lamp:=OmniLight3D.new();lamp.position=at+Vector3.UP*3;lamp.light_color=Color("ffe0a4");lamp.light_energy=.35;lamp.omni_range=5;add_child(lamp)
+ # A pier and moored source-model boat, beyond the walkable shore.
+ box(Vector3(11,-.2,20),Vector3(5,.35,7),Color("a49b83"),false,ART+"cabin_panel.png")
+ model("boat",Vector3(17,-.8,21),2.3,-PI/2,false)
  # Invisible shoreline collision prevents falling into the sea.
  for entry in [[Vector3(-22.3,1,0),Vector3(.6,2,35)],[Vector3(22.3,1,0),Vector3(.6,2,35)],[Vector3(0,1,-17.3),Vector3(45,2,.6)],[Vector3(0,1,17.3),Vector3(45,2,.6)]]:box(entry[0],entry[1],Color.WHITE,true).visible=false
  if game.state.repair>=2:game.spawn_npc("Tron","tron",Vector3(8,0,3))
@@ -146,30 +188,42 @@ func railing(at: Vector3,length: float,rotation_y: float=0) -> void:
   var post=box(Vector3(0,.5,z),Vector3(.09,1,.09),Color("7b8990"));remove_child(post);rail.add_child(post)
  for y in [.4,.92]:
   var beam=box(Vector3(0,y,0),Vector3(.07,.07,length),Color("bac3be"));remove_child(beam);rail.add_child(beam)
+ var body:=StaticBody3D.new();body.collision_layer=1;body.collision_mask=0;rail.add_child(body)
+ var col:=CollisionShape3D.new();var shape:=BoxShape3D.new();shape.size=Vector3(.12,1.0,length);col.position.y=.5;col.shape=shape;body.add_child(col)
+ var footprint: AABB=rail.transform*AABB(Vector3(-.06,0,-length/2),Vector3(.12,1,length))
+ walls.append(Rect2(footprint.position.x,footprint.position.z,footprint.size.x,footprint.size.z))
 
 func boarding_stairs(at: Vector3) -> void:
- # Stair treads, open metal frame and handrails match the landed ship reference.
- for i in range(9):
-  var h: float=.16+float(i)*.24
-  box(at+Vector3(0,h,-float(i)*.36),Vector3(1.4,.12,.38),Color("d0d7d1"),false,ART+"metal.png")
-  for x in [-.65,.65]:
-   box(at+Vector3(x,h/2,-float(i)*.36),Vector3(.075,h,.075),Color("73878d"))
-   box(at+Vector3(x,h+.55,-float(i)*.36),Vector3(.045,1,.045),Color("b9c5c6"))
- for x in [-.65,.65]:
-  var rail=box(at+Vector3(x,1.65,-1.44),Vector3(.065,.065,3.6),Color("d8dfd9"));rail.rotation.x=-.588
- box(at+Vector3(0,2.26,-3.1),Vector3(1.5,.12,.9),Color("ced4cb"),false,ART+"metal.png")
- # Smooth physical ramp under the treads lets the player climb the staircase.
- var body:=StaticBody3D.new();body.position=at+Vector3(0,1.03,-1.45);body.rotation.x=.588;body.collision_layer=1;add_child(body)
- var col:=CollisionShape3D.new();var ramp:=BoxShape3D.new();ramp.size=Vector3(1.35,.16,3.8);col.shape=ramp;body.add_child(col)
+ # Hatch UV mapped to the actual ship surface: relative (-.45, 5.45, 1.98).
+ # With the folded lower fin below the apron, the cabin sill is 2.0 m high.
+ var steps: int=10
+ var tread: float=.4
+ var top: Vector3=at+Vector3(0,2.0,-4.1)
+ set_meta("boarding_bottom",at+Vector3(0,0,.25));set_meta("boarding_top",top)
+ for i in range(steps):
+  var h: float=minf(2.0,.025+(.4+float(i)*tread)/3.8*1.975)
+  box(at+Vector3(0,h-.04,-i*tread),Vector3(1.4,.08,tread+.015),Color("cdd3cc"),false,ART+"metal.png")
+  for x in [-.72,.72]:
+   box(at+Vector3(x,h/2,-i*tread),Vector3(.07,h,.07),Color("63797e"))
+   box(at+Vector3(x,h+.47,-i*tread),Vector3(.05,.94,.05),Color("b6c3c3"))
+ var slope: float=atan(2.0/4.0)
+ for x in [-.72,.72]:
+  var rail=box(at+Vector3(x,1.95,-1.8),Vector3(.065,.065,4.45),Color("d4dcd7"));rail.rotation.x=slope
+  var guard:=StaticBody3D.new();guard.position=at+Vector3(x,1.55,-1.8);guard.rotation.x=slope;guard.collision_layer=1;guard.collision_mask=0;add_child(guard)
+  var col:=CollisionShape3D.new();var shape:=BoxShape3D.new();shape.size=Vector3(.10,.95,4.45);col.shape=shape;guard.add_child(col)
+ box(top-Vector3.UP*.06,Vector3(1.4,.12,1.2),Color("cdd3cc"),true,ART+"metal.png")
+ for x in [-.72,.72]:railing(top+Vector3(x,0,0),1.2)
+ # Smooth ramp meets the apron and top landing at the same heights as the treads.
+ var body:=StaticBody3D.new();body.name="BoardingRamp";body.position=at;body.collision_layer=1;body.collision_mask=0;add_child(body)
+ var col:=CollisionShape3D.new();var ramp:=ConvexPolygonShape3D.new()
+ var vertices:=PackedVector3Array()
+ for x in [-.68,.68]:
+  for yz in [Vector2(-.2,.4),Vector2(.025,.4),Vector2(2.0,-3.4),Vector2(2.0,-4.7),Vector2(-.2,-4.7)]:vertices.append(Vector3(x,yz.x,yz.y))
+ ramp.points=vertices;col.shape=ramp;body.add_child(col)
 
 func tree(at: Vector3) -> void:
- cylinder(at+Vector3(0,1.3,0),.2,2.6,Color("836a4e"))
- var body:=StaticBody3D.new();body.position=at+Vector3.UP;body.collision_layer=1
- var collision:=CollisionShape3D.new();var shape:=CylinderShape3D.new();shape.radius=.22;shape.height=2;collision.shape=shape;body.add_child(collision);add_child(body)
- walls.append(Rect2(at.x-.25,at.z-.25,.5,.5))
- for i in range(3):
-  var mesh:=MeshInstance3D.new();var canopy:=SphereMesh.new();canopy.radius=1.15-float(i)*.12;canopy.height=1.65;canopy.radial_segments=8;canopy.rings=4
-  mesh.mesh=canopy;mesh.material_override=material(Color("527a61") if i%2==0 else Color("739577"));mesh.position=at+Vector3(sin(i*2.4)*.55,2.6+float(i)*.28,cos(i*2.4)*.45);add_child(mesh)
+ model("tree",at,4.0+fmod(absf(at.x+at.z),1.6),fmod(at.x*3.1,TAU),false)
+ cylinder(at+Vector3.UP*.9,.26,1.8,Color("685b45"),true).visible=false
 
 func build_cabin() -> void:
  bounds=Rect2(-10,-8,20,16)
@@ -194,7 +248,7 @@ func build_cabin() -> void:
  interact("Roll's workbench",Vector3(5.8,0,-2),"workshop")
  box(Vector3(0,.03,2),Vector3(5.5,.035,4),Color("a36f56"))
  for x in [-2.5,2.5]:box(Vector3(x,.04,2),Vector3(.12,.02,3.8),Color("dfc696"))
- cylinder(Vector3(6,.45,3),1.5,.3,Color("b29868"));cylinder(Vector3(6,.2,3),.18,.4,Color("685545"))
+ cylinder(Vector3(6,.45,3),1.5,.3,Color("b29868"),true);cylinder(Vector3(6,.2,3),.18,.4,Color("685545"))
  box(Vector3(-6,.4,4),Vector3(4,.8,1.7),Color("557b88"),true)
  box(Vector3(-6,1.0,4.7),Vector3(4,.8,.25),Color("557b88"))
  game.spawn_npc("Roll","roll",Vector3(3,0,-3));game.spawn_npc("Data","data",Vector3(-2,0,4));game.spawn_npc("Barrell","barrell",Vector3(-5,0,2))
@@ -218,11 +272,11 @@ func build_ruins() -> void:
   for x in range(30):
    var at:=point(Vector2(x+.5,y+.5))
    if cells.has(Vector2i(x,y)):
-    batch_box(at-Vector3.UP*.07,Vector3(1.38,.14,1.38),Color("cadad3") if (x+y)%4==0 else Color("becfc9"),ART+"cabin_metal.png")
+    batch_box(at-Vector3.UP*.055,Vector3(1.38,.14,1.38),Color("acb89f") if (x+y)%4==0 else Color("9fad96"),ART+"hex_floor.png")
     if (x*7+y*3)%11==0:batch_box(at+Vector3.UP*.012,Vector3(.9,.035,.03),Color("abc8a9"))
    else:
-    batch_box(at+Vector3.UP*.65,Vector3(1.4,1.3,1.4),Color("c4d0bd"),ART+"wall.png")
-    batch_box(at+Vector3.UP*1.32,Vector3(1.4,.06,1.4),Color("a6b8aa"),ART+"wall_cap.png")
+    batch_box(at+Vector3.UP*.65,Vector3(1.4,1.3,1.4),Color("aabba2"),ART+"wall.png")
+    batch_box(at+Vector3.UP*1.32,Vector3(1.4,.06,1.4),Color("7a8e78"),ART+"wall_cap.png")
  for y in range(22):
   var start: int=-1
   for x in range(31):
@@ -233,8 +287,8 @@ func build_ruins() -> void:
     wall_collision(at,Vector3((x-start)*1.4,1.3,1.4));start=-1
  for p in [Vector2(3.2,12.2),Vector2(8.3,17.8),Vector2(12,9.5),Vector2(18,12.6),Vector2(22,11.5),Vector2(27,17.8)]:
   var at:=point(p)
-  box(at+Vector3.UP*1.2,Vector3(.75,2.4,.75),Color("c2cec4"),true,ART+"pillar.png")
-  cylinder(at+Vector3.UP*2.5,.5,.2,Color("b7c7a5"))
+  box(at+Vector3.UP*1.2,Vector3(.75,2.4,.75),Color("94b095"),true,ART+"pillar.png")
+  cylinder(at+Vector3.UP*2.5,.5,.2,Color("819281"))
  for p in [Vector2(11.5,8.8),Vector2(18.5,8.8),Vector2(8.5,2.8),Vector2(21.5,2.8)]:
   var at:=point(p)
   box(at+Vector3.UP*.8,Vector3(.24,1.6,.55),Color("a6bdb4"),false,ART+"circuit.png")
@@ -245,7 +299,7 @@ func build_ruins() -> void:
  var part: String="servo" if depth==1 else ("circuit" if depth==2 else "refractor")
  var at:=point(Vector2(5.3,13.1) if depth==1 else Vector2(15,3.5))
  if game.state.repair<depth and not part in game.state.parts or depth>=4:
-  var pedestal:=cylinder(at+Vector3.UP*.35,.55,.7,Color("829b8d"))
+  var pedestal:=cylinder(at+Vector3.UP*.35,.55,.7,Color("829b8d"),true)
   var crystal=game.crystal(at+Vector3.UP*1.1,Color("a7eedb"),.35)
   interact("%s cache"%part.capitalize(),at,"cache",{"part":part,"visual":crystal,"pedestal":pedestal})
  for entry in [[Vector2(5.7,16.3),"horokko"],[Vector2(12.4,11.7),"horokko"],[Vector2(16.7,10.3),"sharukurusu"],[Vector2(24.8,13.1),"horokko"],[Vector2(25.7,17.2),"sharukurusu"],[Vector2(23,16),"horokko"]]:game.spawn_enemy(entry[1],point(entry[0]),32+depth*8)
@@ -256,7 +310,7 @@ func build_ruins() -> void:
   var positions: Array=[Vector2(4.3,17.6),Vector2(17.4,12.2),Vector2(26.3,17.2),Vector2(10,4.6)]
   spawn_salvage(point(positions[i]),"%d_%d"%[depth,i])
  if not game.state.weapon_plans:
-  var plans:=box(point(Vector2(26.2,14.9))+Vector3.UP*.3,Vector3(.8,.6,.8),Color("86b9b7"))
+  var plans:=box(point(Vector2(26.2,14.9))+Vector3.UP*.3,Vector3(.8,.6,.8),Color("86b9b7"),true)
   interact("Weapon plans",point(Vector2(26.2,14.9)),"plans",{"visual":plans})
  for p in [Vector2(5,14.5),Vector2(15,9.5),Vector2(25,14.5),Vector2(15,4.5)]:
   var lamp:=OmniLight3D.new();lamp.position=point(p)+Vector3.UP*2;lamp.light_color=Color("76d3d1");lamp.light_energy=.6;lamp.omni_range=6;add_child(lamp)
@@ -285,7 +339,7 @@ func build_bonne() -> void:
 
  box(Vector3(0,-.2,0),Vector3(24,.4,20),Color("b7b394"),true)
  for x in range(-11,12,2):
-  for z in range(-9,10,2):batch_box(Vector3(x,.012,z),Vector3(1.95,.03,1.95),Color(.9,.96,1.4),ART+"sand.png")
+  for z in range(-9,10,2):batch_box(Vector3(x,.012,z),Vector3(1.95,.03,1.95),Color.WHITE,ART+"sand.png")
  for entry in [[Vector3(0,.8,-10),Vector3(25,1.6,.5)],[Vector3(0,.8,10),Vector3(25,1.6,.5)],[Vector3(-12,.8,0),Vector3(.5,1.6,20)],[Vector3(12,.8,0),Vector3(.5,1.6,20)]]:box(entry[0],entry[1],Color("7c9184"),true)
  for at in [Vector3(-9,0,-7),Vector3(9,0,-7),Vector3(-9,0,7),Vector3(9,0,7)]:spawn_salvage(at,"arena_%s"%at)
  for side in [-1.0,1.0]:

@@ -27,7 +27,7 @@ func run():
  game.start_new();await close_dialogue();check(game.mode=="game","new adventure")
  var ship=game.world.get_node("LandedFlutter")
  check(is_zero_approx(ship.rotation.x) and is_zero_approx(ship.rotation.z) and ship.position.y<1,"Flutter lands upright above its supports")
- game.player.position=Vector3(-5.4,0,4.5);await ticks(2);Input.action_press("move_up");await ticks(30);Input.action_release("move_up")
+ game.player.position=Vector3(-10.45,0,3.5);await ticks(2);Input.action_press("move_up");await ticks(30);Input.action_release("move_up")
  check(game.player.position.y>.45,"metal boarding stairs have a climbable physical ramp")
  game.player.position=Vector3(0,0,8)
  game.execute_choice("dig_1");check(game.transition.is_empty(),"ruins require repair plan")

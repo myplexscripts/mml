@@ -3,7 +3,8 @@ var game
 var fuse: float=1.15
 var detonated: bool=false
 func _ready() -> void:
- collision_layer=32;collision_mask=1|16;continuous_cd=true;mass=.4
+ collision_layer=32;collision_mask=1|16;continuous_cd=true;mass=.4;contact_monitor=true;max_contacts_reported=4
+ body_entered.connect(func(_body):game.audio.effect("bounce"))
  physics_material_override=PhysicsMaterial.new();physics_material_override.bounce=.55;physics_material_override.friction=.55
  var shape:=SphereShape3D.new();shape.radius=.16
  var collision:=CollisionShape3D.new();collision.shape=shape;add_child(collision)
