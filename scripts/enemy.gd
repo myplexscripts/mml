@@ -1,4 +1,6 @@
 extends CharacterBody2D
+const ModelSprite = preload("res://scripts/model_sprite.gd")
+
 var game
 var kind: String = "horokko"
 var health: int = 30
@@ -12,6 +14,7 @@ var knockback := Vector2.ZERO
 var attack_direction := Vector2.DOWN
 var clock: float = 0.0
 var sprite: Sprite2D
+var model_view
 var boss: bool = false
 var reward: int = 40
 var score_value: int = 100
@@ -28,21 +31,39 @@ func _ready() -> void:
 	circle.radius = 25 if boss else 12
 	shape.shape = circle
 	add_child(shape)
-	sprite = Sprite2D.new()
-	if kind == "bonne":
-		sprite.texture = preload("res://assets/world/bonne_mech.png")
-		sprite.scale = Vector2(0.9,0.9)
-		sprite.position = Vector2(0,-42)
-	elif boss:
-		sprite.texture = preload("res://assets/characters/guardian.png")
-		sprite.position = Vector2(0,-29)
+
+	var model_path := _model_path()
+	if not model_path.is_empty():
+		model_view = ModelSprite.new()
+		model_view.model_path = model_path
+		model_view.display_height = 86.0 if boss else 56.0
+		model_view.yaw_offset = PI
+		add_child(model_view)
 	else:
-		sprite.texture = load("res://assets/characters/%s.png"%kind)
-		sprite.hframes = 4
-		sprite.position = Vector2(0,-18)
-	add_child(sprite)
+		sprite = Sprite2D.new()
+		if kind == "bonne":
+			sprite.texture = preload("res://assets/world/bonne_mech.png")
+			sprite.scale = Vector2(0.9,0.9)
+			sprite.position = Vector2(0,-42)
+		elif boss:
+			sprite.texture = preload("res://assets/characters/guardian.png")
+			sprite.position = Vector2(0,-29)
+		else:
+			sprite.texture = load("res://assets/characters/%s.png"%kind)
+			sprite.hframes = 4
+			sprite.position = Vector2(0,-18)
+		add_child(sprite)
 	home = global_position
 	max_health = health
+
+func _model_path() -> String:
+	var model_name := kind
+	if kind == "bonne": model_name = "feldynaught"
+	for extension in ["glb", "fbx"]:
+		var path := "res://assets/models/%s/model.%s" % [model_name, extension]
+		if ResourceLoader.exists(path):
+			return path
+	return ""
 
 func _physics_process(delta: float) -> void:
 	if not game.active() or defeated: return
@@ -98,10 +119,14 @@ func _physics_process(delta: float) -> void:
 			else:
 				cooldown = 0.8
 	move_and_slide()
-	if distance < (34 if boss else 20):
-		player.hurt(18 if boss else 9,global_position)
-	if not boss: sprite.frame = int(clock*7)%4
-	sprite.modulate = Color(2.3,1.4,1.1) if hurt_flash>0 else Color.WHITE
+	if distance < (34 if boss else 20): player.hurt(18 if boss else 9,global_position)
+	if is_instance_valid(model_view):
+		if velocity.length()>1: model_view.set_facing(velocity.normalized())
+		model_view.set_moving(velocity.length()>1)
+		model_view.set_visual_modulate(Color(2.3,1.4,1.1) if hurt_flash>0 else Color.WHITE)
+	elif is_instance_valid(sprite):
+		if not boss: sprite.frame = int(clock*7)%4
+		sprite.modulate = Color(2.3,1.4,1.1) if hurt_flash>0 else Color.WHITE
 	queue_redraw()
 
 func hurt(amount: int, from: Vector2) -> void:
