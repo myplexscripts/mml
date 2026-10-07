@@ -1,4 +1,5 @@
 extends Node3D
+const Refractor=preload("res://scripts/legends/refractor.gd")
 var game
 var kind: String="zenny"
 var amount: int=1
@@ -7,8 +8,12 @@ var age: float=0
 var visual: Node3D
 func _ready() -> void:
  motion=Vector3(randf_range(-2,2),3.5,randf_range(-2,2))
- var colour: Color=Color("ffe0a0") if kind=="zenny" else (Color("99e3db") if kind=="shards" else Color("a8b4b4"))
- visual=game.crystal(Vector3.ZERO,colour,.17 if kind=="zenny" else .24,self)
+ if kind=="shards":
+  var colours: Array=[Color("ff315f"),Color("48b9ff"),Color("6ee98a"),Color("ffd65b"),Color("b77cff")]
+  visual=Refractor.make(colours[randi()%colours.size()],.48,.105);visual.rotation.z=randf_range(-.32,.32);add_child(visual)
+ else:
+  var colour: Color=Color("ffe0a0") if kind=="zenny" else Color("a8b4b4")
+  visual=game.crystal(Vector3.ZERO,colour,.17 if kind=="zenny" else .24,self)
 func _physics_process(delta: float) -> void:
  if not game.active():return
  age+=delta;motion.y-=9.8*delta
@@ -27,4 +32,6 @@ func _physics_process(delta: float) -> void:
   if game.line_clear(position,attracted):position=attracted
  if distance<.7 and age>.35:
   game.state.set(kind,int(game.state.get(kind))+amount);game.audio.effect("item",1.1);queue_free()
- if is_instance_valid(visual):visual.rotation.y+=delta*2
+ if is_instance_valid(visual):
+  visual.rotation.y+=delta*2
+  if kind=="shards":visual.rotation.z+=delta*.35
