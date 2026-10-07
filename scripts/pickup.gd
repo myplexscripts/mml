@@ -1,4 +1,6 @@
 extends Node2D
+const ModelSprite = preload("res://scripts/model_sprite.gd")
+
 var game
 var kind: String = "zenny"
 var amount: int = 1
@@ -7,9 +9,16 @@ var height: float = 16.0
 var rise: float = 60.0
 var age: float = 0.0
 var sprite: Sprite2D
+var model_view
 
 func _ready() -> void:
-	if kind!="zenny":
+	if kind=="shard" and ResourceLoader.exists("res://assets/models/refractor/refractor.obj"):
+		model_view = ModelSprite.new()
+		model_view.model_path = "res://assets/models/refractor/refractor.obj"
+		model_view.display_height = 26.0
+		model_view.yaw_offset = -0.4
+		add_child(model_view)
+	elif kind!="zenny":
 		sprite = Sprite2D.new()
 		var path := "res://assets/items/%s.png"%kind
 		if ResourceLoader.exists(path):
@@ -40,6 +49,9 @@ func _physics_process(delta: float) -> void:
 		game.audio.effect("item",1.15 if kind=="zenny" else 1)
 		queue_free()
 	if is_instance_valid(sprite): sprite.position.y = -height-8
+	if is_instance_valid(model_view):
+		model_view.position.y = -height+5
+		model_view.rotation = age*1.8
 	queue_redraw()
 
 func _draw() -> void:
