@@ -1,4 +1,6 @@
 extends CharacterBody2D
+const ModelSprite = preload("res://scripts/model_sprite.gd")
+
 var game
 var facing := Vector2.DOWN
 var knockback := Vector2.ZERO
@@ -11,6 +13,7 @@ var invincible: float = 0.0
 var walk_time: float = 0.0
 var step_time: float = 0.0
 var sprite: Sprite2D
+var model_view
 var aim_target
 
 func _ready() -> void:
@@ -21,13 +24,22 @@ func _ready() -> void:
 	circle.radius = 8
 	shape.shape = circle
 	add_child(shape)
-	sprite = Sprite2D.new()
-	sprite.texture = preload("res://assets/characters/megaman.png")
-	sprite.hframes = 4
-	sprite.vframes = 3
-	sprite.position = Vector2(0,-19)
-	sprite.scale = Vector2(0.85,0.85)
-	add_child(sprite)
+
+	var model_path := "res://assets/models/megaman/model.glb"
+	if ResourceLoader.exists(model_path):
+		model_view = ModelSprite.new()
+		model_view.model_path = model_path
+		model_view.display_height = 67.0
+		model_view.yaw_offset = PI
+		add_child(model_view)
+	else:
+		sprite = Sprite2D.new()
+		sprite.texture = preload("res://assets/characters/megaman.png")
+		sprite.hframes = 4
+		sprite.vframes = 3
+		sprite.position = Vector2(0,-19)
+		sprite.scale = Vector2(0.85,0.85)
+		add_child(sprite)
 
 func _physics_process(delta: float) -> void:
 	if not game.active():
@@ -74,12 +86,19 @@ func _physics_process(delta: float) -> void:
 		game.use_tool()
 	if Input.is_action_just_pressed("special"): special_fire()
 	if Input.is_action_just_pressed("heal"): game.use_heal()
-	var firing: bool = shot_cooldown > 0.1 and game.tool == 0
-	var col := int(walk_time*9)%4 if move.length() > 0.1 else 0
-	var row := 1 if firing else (0 if move.length() > 0.1 else 2)
-	sprite.frame = row*4+col
-	if facing.x != 0: sprite.flip_h = facing.x < 0
-	sprite.modulate.a = 0.4 if invincible>0 and int(invincible*14)%2 == 0 else 1.0
+
+	var flash_alpha := 0.4 if invincible>0 and int(invincible*14)%2 == 0 else 1.0
+	if is_instance_valid(model_view):
+		model_view.set_facing(facing)
+		model_view.set_moving(move.length()>0.1 or dash_time>0)
+		model_view.set_visual_modulate(Color(1,1,1,flash_alpha))
+	elif is_instance_valid(sprite):
+		var firing: bool = shot_cooldown > 0.1 and game.tool == 0
+		var col := int(walk_time*9)%4 if move.length() > 0.1 else 0
+		var row := 1 if firing else (0 if move.length() > 0.1 else 2)
+		sprite.frame = row*4+col
+		if facing.x != 0: sprite.flip_h = facing.x < 0
+		sprite.modulate.a = flash_alpha
 	queue_redraw()
 
 func fire(mouse: bool = false) -> void:
