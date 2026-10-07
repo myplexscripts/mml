@@ -5,10 +5,13 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -20,11 +23,37 @@ jobs:
           use-dotnet: false
           include-templates: true
 
+      - name: Install virtual display
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: Render real model contact sheet
+        run: xvfb-run -a godot --path . --rendering-method gl_compatibility --script tools/render_model_sheet.gd
+
+      - name: Commit refreshed model sheet
+        if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/model-sheet.png
+          if git diff --cached --quiet; then
+            echo "Model sheet unchanged"
+          else
+            git commit -m "Update real model contact sheet [skip ci]"
+            git push
+          fi
+
       - name: Validate gameplay and export Windows and Web
         run: python tools/check_game.py --godot godot --export
 
       - name: Package builds with instructions and credits
         run: python tools/package_game.py
+
+      - name: Upload real model sheet
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flutterbound-Model-Sheet
+          path: docs/model-sheet.png
+          if-no-files-found: error
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
