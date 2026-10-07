@@ -1,8 +1,11 @@
 extends CharacterBody2D
+const ModelSprite = preload("res://scripts/model_sprite.gd")
+
 var game
 var person: String = "Roll"
 var art: String = "roll"
 var sprite: Sprite2D
+var model_view
 var clock: float = 0.0
 var destination := Vector2.ZERO
 var path: PackedVector2Array = []
@@ -17,13 +20,29 @@ func _ready() -> void:
 	circle.radius = 7
 	shape.shape = circle
 	add_child(shape)
-	sprite = Sprite2D.new()
-	sprite.texture = load("res://assets/characters/%s.png"%art)
-	sprite.hframes=4
-	sprite.vframes=4
-	sprite.position=Vector2(0,-21)
-	sprite.scale=Vector2(1.25,1.25)
-	add_child(sprite)
+
+	var model_path := _model_path()
+	if not model_path.is_empty():
+		model_view = ModelSprite.new()
+		model_view.model_path = model_path
+		model_view.display_height = 61.0 if person!="Data" else 48.0
+		model_view.yaw_offset = PI
+		add_child(model_view)
+	else:
+		sprite = Sprite2D.new()
+		sprite.texture = load("res://assets/characters/%s.png"%art)
+		sprite.hframes=4
+		sprite.vframes=4
+		sprite.position=Vector2(0,-21)
+		sprite.scale=Vector2(1.25,1.25)
+		add_child(sprite)
+
+func _model_path() -> String:
+	for extension in ["glb", "fbx"]:
+		var path := "res://assets/models/%s/model.%s" % [art, extension]
+		if ResourceLoader.exists(path):
+			return path
+	return ""
 
 func _physics_process(delta: float) -> void:
 	if not game.active(): return
@@ -46,7 +65,11 @@ func _physics_process(delta: float) -> void:
 		velocity=Vector2.ZERO
 		frame_row=0
 	move_and_slide()
-	sprite.frame=frame_row*4+(int(clock*5)%4 if velocity.length()>1 or person=="Data" else 0)
+	if is_instance_valid(model_view):
+		if velocity.length()>1: model_view.set_facing(velocity.normalized())
+		model_view.set_moving(velocity.length()>1 or person=="Data")
+	elif is_instance_valid(sprite):
+		sprite.frame=frame_row*4+(int(clock*5)%4 if velocity.length()>1 or person=="Data" else 0)
 	queue_redraw()
 
 func _draw() -> void:
