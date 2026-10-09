@@ -41,7 +41,7 @@ The MML project does not need its 2D controller or combat replacement. Those are
 
 ## First integration
 
-The first integration is the new native MML progression layer in `scripts/legends/progression.gd`.
+The first integration is an extensible MML1 progression layer embedded in `scripts/legends/state.gd`.
 
 It provides:
 
@@ -52,9 +52,11 @@ It provides:
 - serialization for save/load
 - a fixed twenty-step MML1 campaign range
 
-The existing `scripts/legends/state.gd` now saves this progression payload as save schema version 2 while still accepting version 1 saves. The old vertical-slice fields remain temporarily so existing gameplay and saves do not break during migration.
+Keeping the runtime progression API in `state.gd` is intentional. This project currently exports an explicit selected-resource list, and `state.gd` is already part of every supported build. Embedding the progression state there avoids creating a hidden runtime dependency that a packaged Windows or Web build could omit.
 
-`data/mml1_campaign.json` contains the twenty-step campaign backbone from the project's MML1 reference bible. Future scene logic should refer to this campaign data and named story state rather than adding more one-off booleans to `state.gd`.
+The save schema is now version 2 while still accepting version 1 saves. The old vertical-slice fields remain temporarily so existing gameplay and saves do not break during migration.
+
+`data/mml1_campaign.json` contains the twenty-step campaign backbone from the project's MML1 reference bible. `scripts/legends/campaign.gd` provides development-side access to that data. Future scene logic should use the canonical campaign data and named story state rather than adding more one-off booleans.
 
 ## Migration order
 
