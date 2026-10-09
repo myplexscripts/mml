@@ -17,7 +17,7 @@ def run(godot, name, arguments, timeout=120, expected=None):
     print(f"Checking {name}...", flush=True)
     with tempfile.TemporaryDirectory(prefix="kattelox-check-") as user_data:
         env = dict(os.environ)
-        if name in ["legends", "combat", "geometry", "finish"]:
+        if name in ["legends", "combat", "geometry", "finish", "progression"]:
             env["XDG_DATA_HOME"] = user_data
         result = subprocess.run(
             [godot, "--headless", "--path", str(ROOT), *arguments],
@@ -42,6 +42,7 @@ def main():
     (ROOT / "build").mkdir(exist_ok=True)
     (ROOT / "build" / ".gdignore").touch()
     run(options.godot, "import", ["--editor", "--quit"])
+    run(options.godot, "progression", ["--script", "tests/progression_test.gd"], expected="0 failed")
     run(options.godot, "legends", ["--script", "tests/legends_test.gd"], expected="0 failed")
     run(options.godot, "combat", ["--script", "tests/legends_combat.gd"], expected="LEGENDS COMBAT: PASS")
     run(options.godot, "geometry", ["--script", "tests/legends_geometry.gd"], expected="0 failed")

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "title": "Mega Man Legends 1 campaign",
+  "adaptation": "top-down",
+  "steps": [
+    {"step": 1, "id": "ocean_tower_escape", "location": "Ocean Tower", "goal": "Escape tutorial and Hanmuru Doll", "result": "Blue refractor already acquired"},
+    {"step": 2, "id": "cardon_crash", "location": "Cardon Forest", "goal": "Crash and seek repair help", "result": "Apple Market approach"},
+    {"step": 3, "id": "junk_store_rescue", "location": "Portal 1 / Apple Market", "goal": "Rescue the Junk Store owner", "result": "Support car and early equipment"},
+    {"step": 4, "id": "find_barrell", "location": "Downtown / City Hall", "goal": "Find Barrell and encounter Tron", "result": "Pirate attack trigger"},
+    {"step": 5, "id": "downtown_attack", "location": "Downtown", "goal": "Blumebears and Feldynaught", "result": "Gate key and City Hall access"},
+    {"step": 6, "id": "city_hall_defence", "location": "City Hall", "goal": "Defend the building and defeat Bon Bonne", "result": "Class B licence"},
+    {"step": 7, "id": "northern_advance", "location": "Yass Plains / Clozer Woods", "goal": "Advance north and defeat Marlwolf", "result": "Class A licence"},
+    {"step": 8, "id": "cardon_subgate_approach", "location": "Cardon Forest", "goal": "Advance with Roll's assistance", "result": "Cardon Sub-Gate access"},
+    {"step": 9, "id": "cardon_subgate", "location": "Cardon Sub-Gate", "goal": "Collect the three starter keys", "result": "Yellow refractor"},
+    {"step": 10, "id": "repair_wily_boat", "location": "Uptown", "goal": "Repair Wily's boat", "result": "Lake transport"},
+    {"step": 11, "id": "lake_jyun_battle", "location": "Lake Jyun", "goal": "Boat combat and Balcon Gelede", "result": "Lake Sub-Gate access"},
+    {"step": 12, "id": "lake_subgate", "location": "Lake Sub-Gate", "goal": "Collect starter keys and defeat Garudoriten", "result": "Red refractor"},
+    {"step": 13, "id": "flutter_restart", "location": "Flutter", "goal": "Restart the Flutter's engine", "result": "Flight and cabin access"},
+    {"step": 14, "id": "clozer_subgate", "location": "Clozer Sub-Gate", "goal": "Restore the generator and recover ID cards", "result": "Main Gate opens"},
+    {"step": 15, "id": "flutter_air_battle", "location": "Flutter deck", "goal": "Draches, Gesellschaft and Fokkerwolf battle", "result": "Return from aerial battle"},
+    {"step": 16, "id": "main_gate_activation", "location": "Main Gate", "goal": "Activate the control panel", "result": "Sub-City portals"},
+    {"step": 17, "id": "bruno", "location": "Old City", "goal": "Warehouse reveal and Bruno battle", "result": "Late Bonne defeat"},
+    {"step": 18, "id": "subcity_keys", "location": "Three Sub-Cities", "goal": "Watcher, Sleeper and Dreamer", "result": "Central Gate keys"},
+    {"step": 19, "id": "central_gate", "location": "Central Gate", "goal": "Juno, Bonne rescue and two-phase battle", "result": "Data stops Eden"},
+    {"step": 20, "id": "kattelox_departure", "location": "Kattelox / Flutter", "goal": "Farewells and departure", "result": "Original ending"}
+  ]
+}
