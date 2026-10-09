@@ -1,5 +1,4 @@
 extends Node3D
-const Refractor=preload("res://scripts/legends/refractor.gd")
 var game
 var kind: String="zenny"
 var amount: int=1
@@ -10,10 +9,16 @@ func _ready() -> void:
  motion=Vector3(randf_range(-2,2),3.5,randf_range(-2,2))
  if kind=="shards":
   var colours: Array=[Color("ff315f"),Color("48b9ff"),Color("6ee98a"),Color("ffd65b"),Color("b77cff")]
-  visual=Refractor.make(colours[randi()%colours.size()],.48,.105);visual.rotation.z=randf_range(-.32,.32);add_child(visual)
+  visual=make_shard(colours[randi()%colours.size()]);visual.rotation.z=randf_range(-.32,.32);add_child(visual)
  else:
   var colour: Color=Color("ffe0a0") if kind=="zenny" else Color("a8b4b4")
   visual=game.crystal(Vector3.ZERO,colour,.17 if kind=="zenny" else .24,self)
+func make_shard(colour: Color) -> Node3D:
+ var root:=Node3D.new();root.name="RefractorShard"
+ var mesh:=MeshInstance3D.new();var prism:=PrismMesh.new();prism.size=Vector3(.13,.48,.105);mesh.mesh=prism;mesh.rotation.z=PI
+ var mat:=StandardMaterial3D.new();mat.albedo_color=Color(colour.r,colour.g,colour.b,.86);mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS;mat.emission_enabled=true;mat.emission=colour*.42;mat.roughness=.22;mat.metallic=.05;mesh.material_override=mat;root.add_child(mesh)
+ var glow:=OmniLight3D.new();glow.light_color=colour;glow.light_energy=.28;glow.omni_range=1.1;glow.shadow_enabled=false;root.add_child(glow)
+ return root
 func _physics_process(delta: float) -> void:
  if not game.active():return
  age+=delta;motion.y-=9.8*delta
