@@ -13,7 +13,7 @@ func move(direction: Vector3):
   if pair[1]>.05:Input.action_press(pair[0],pair[1])
   else:Input.action_release(pair[0])
 func run():
- game=load("res://scenes/legends.tscn").instantiate();root.add_child(game);await ticks(2);game.mode="game"
+ game=load("res://scripts/legends/main.gd").new();root.add_child(game);await ticks(2);game.mode="game"
  game.build_area("bonne",1,Vector3(0,0,6.5));await ticks(3)
  # Normal starting armour, Buster and three bottles. AI remains fully active.
  Input.action_press("lock");Input.action_press("fire")
