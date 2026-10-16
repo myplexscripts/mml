@@ -1,0 +1,60 @@
+name: Build Refractor Pit Windows
+
+on:
+  push:
+    branches:
+      - ballpit-godot-export
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Godot 4.7.2
+        run: |
+          set -euxo pipefail
+          wget -q https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
+          unzip -q Godot_v4.7.2-stable_linux.x86_64.zip
+          sudo mv Godot_v4.7.2-stable_linux.x86_64 /usr/local/bin/godot
+          godot --version
+
+      - name: Install export templates
+        run: |
+          set -euxo pipefail
+          wget -q https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          unzip -q Godot_v4.7.2-stable_export_templates.tpz -d /tmp/godot-templates
+          cp -R /tmp/godot-templates/templates/. "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
+
+      - name: Import and validate project
+        run: |
+          set -euxo pipefail
+          timeout 120s godot --headless --path . --editor --quit
+
+      - name: Export Windows EXE
+        run: |
+          set -euxo pipefail
+          mkdir -p build/windows
+          godot --headless --path . --export-release "Windows Desktop" "build/windows/Mega Man Legends - Refractor Pit.exe"
+          test -s "build/windows/Mega Man Legends - Refractor Pit.exe"
+          ls -lh build/windows
+
+      - name: Package Windows build
+        run: |
+          set -euxo pipefail
+          cd build/windows
+          sha256sum "Mega Man Legends - Refractor Pit.exe" > SHA256.txt
+          zip -9 "MML-Refractor-Pit-Windows.zip" "Mega Man Legends - Refractor Pit.exe" SHA256.txt
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: mml-refractor-pit-windows
+          path: build/windows/MML-Refractor-Pit-Windows.zip
+          if-no-files-found: error
