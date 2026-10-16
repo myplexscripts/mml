@@ -17,7 +17,7 @@ func clear_enemies():
   if is_instance_valid(enemy):enemy.hurt(10000,game.player.position)
  await ticks(3)
 func run():
- game=load("res://scenes/legends.tscn").instantiate();root.add_child(game);await ticks()
+ game=load("res://scripts/legends/main.gd").new();root.add_child(game);await ticks()
  check(game.mode=="title","title")
  game.state.zenny=999;game.state.save_game();var original_save: String=FileAccess.get_file_as_string(game.state.SAVE_PATH)
  game.ui.menu("NEW ADVENTURE","Replace save?",[],true)

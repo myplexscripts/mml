@@ -11,7 +11,7 @@ func check(condition: bool,message: String):
 func ray(from: Vector3,to: Vector3) -> Dictionary:
  return game.world.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(from,to,1))
 func run():
- game=load("res://scenes/legends.tscn").instantiate();root.add_child(game);await ticks()
+ game=load("res://scripts/legends/main.gd").new();root.add_child(game);await ticks()
  game.start_new()
  while game.mode=="dialogue":
   game.ui.dialogue_text.visible_characters=-1;game.ui.advance_dialogue()
