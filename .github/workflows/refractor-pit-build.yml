@@ -1,6 +1,9 @@
 name: Build Refractor Pit Windows
 
 on:
+  push:
+    branches:
+      - ballpit-godot-export
   workflow_dispatch:
 
 permissions:
@@ -42,14 +45,49 @@ jobs:
 
       - name: Import and validate project
         run: |
-          set -euxo pipefail
-          timeout 120s godot --headless --path . --editor --quit
+          set -uo pipefail
+          set +e
+          timeout 120s godot --headless --path . --editor --quit 2>&1 | tee godot-import.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            exit "$status"
+          fi
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Invalid call|Invalid access" godot-import.log; then
+            echo "Godot script validation failed"
+            exit 1
+          fi
+
+      - name: Smoke test main scene
+        run: |
+          set -uo pipefail
+          set +e
+          timeout 8s godot --headless --path . 2>&1 | tee godot-runtime.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ] && [ "$status" -ne 124 ]; then
+            exit "$status"
+          fi
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Invalid call|Invalid access" godot-runtime.log; then
+            echo "Godot runtime smoke test failed"
+            exit 1
+          fi
 
       - name: Export Windows EXE
         run: |
-          set -euxo pipefail
+          set -uo pipefail
           mkdir -p build/windows
-          godot --headless --path . --export-release "Windows Desktop" "build/windows/Mega Man Legends - Refractor Pit.exe"
+          set +e
+          godot --headless --path . --export-release "Windows Desktop" "build/windows/Mega Man Legends - Refractor Pit.exe" 2>&1 | tee godot-export.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            exit "$status"
+          fi
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Invalid call|Invalid access" godot-export.log; then
+            echo "Godot export reported script errors"
+            exit 1
+          fi
           test -s "build/windows/Mega Man Legends - Refractor Pit.exe"
           ls -lh build/windows
 
