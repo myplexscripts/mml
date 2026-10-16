@@ -27,6 +27,27 @@ jobs:
             done
           fi
 
+      - name: Extract playable frames from MML sprite sheets
+        run: |
+          set -euxo pipefail
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from PIL import Image
+
+          frames = {
+              "assets/characters/megaman.png": (0, 0, 38, 45),
+              "assets/characters/roll.png": (0, 0, 24, 36),
+              "assets/characters/horokko.png": (0, 0, 48, 48),
+              "assets/characters/zakobon.png": (0, 0, 48, 48),
+              "assets/characters/sharukurusu.png": (0, 0, 48, 48),
+          }
+          for path, box in frames.items():
+              image = Image.open(path).convert("RGBA")
+              frame = image.crop(box)
+              frame.save(path)
+              print(f"{path}: {image.size} -> {frame.size}")
+          PY
+
       - name: Install Godot 4.7.2
         run: |
           set -euxo pipefail
