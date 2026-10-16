@@ -63,6 +63,11 @@ func build_area(target: String, level: int, spawn: Vector3) -> void:
 	player.kind = "megaman"
 	player.position = spawn + Vector3.UP * .1
 	world.add_child(player)
+	if target == "apple_market" and state.campaign_step >= 4:
+		world.interact("Downtown gate",Vector3(0,0,-5.2),"downtown_gate")
+		world.sign_at("DOWNTOWN",Vector3(0,2.2,-5.8))
+	if target == "downtown" and state.campaign_step == 4 and not state.story_flag(&"barrell_found_downtown"):
+		spawn_npc("Barrell","barrell",Vector3(-8,0,1.5))
 	camera_focus = spawn
 	audio.track(_track_for_area(target))
 
@@ -156,7 +161,11 @@ func execute_interaction(item: Dictionary) -> void:
 			state.set_campaign_step(2)
 			state.save_game()
 			dialogue("Roll",["That's the way out! I'm bringing the Flutter around. Get ready to jump aboard!"],"cardon_crash")
-		"to_market": travel("apple_market",3,Vector3(-14,0,0))
+		"to_market":
+			if state.campaign_step == 2:
+				state.set_campaign_step(3)
+				state.save_game()
+			travel("apple_market",3,Vector3(-14,0,0))
 		"to_cardon": travel("cardon",2,Vector3(15,0,0))
 		"to_portal1":
 			if state.story_flag(&"junk_store_owner_rescued"):
@@ -167,7 +176,7 @@ func execute_interaction(item: Dictionary) -> void:
 			if not state.story_flag(&"junk_store_owner_rescued"):
 				dialogue("Resident",["The Junk Store is closed. The owner went into Portal 1 and hasn't come back yet."])
 			else: open_shop()
-		"downtown_gate": travel("downtown",4,Vector3(0,0,11))
+		"downtown_gate": travel("downtown",4,Vector3(-15,0,0))
 		"city_hall_gate":
 			if state.campaign_step < 6:
 				toast("City Hall is not part of the current objective yet.")
