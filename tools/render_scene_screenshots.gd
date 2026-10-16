@@ -3,26 +3,43 @@ extends SceneTree
 const OUTPUT_DIR := "res://build/screenshots"
 
 var game
+var watchdog: Timer
 
 
-func _init() -> void:
-	call_deferred("run")
+func _initialize() -> void:
+	ProjectSettings.set_setting("display/window/size/viewport_width", 1280)
+	ProjectSettings.set_setting("display/window/size/viewport_height", 720)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUTPUT_DIR))
+
+	watchdog = Timer.new()
+	watchdog.one_shot = true
+	watchdog.wait_time = 75.0
+	watchdog.timeout.connect(func():
+		push_error("Screenshot renderer timed out")
+		quit(1)
+	)
+	root.add_child(watchdog)
+	watchdog.start()
+	call_deferred("_render_all")
 
 
-func frames(count: int = 8) -> void:
+func frames(count: int = 4) -> void:
 	for i in range(count):
 		await process_frame
 
 
 func capture(name: String) -> void:
-	await frames(18)
+	await frames(4)
+	RenderingServer.force_draw()
+	await process_frame
 	var image := root.get_texture().get_image()
 	var path := "%s/%s.png" % [OUTPUT_DIR, name]
 	var error := image.save_png(path)
 	if error != OK:
 		push_error("Could not save screenshot %s: %s" % [path, error_string(error)])
-	else:
-		print("SCREENSHOT: ", path)
+		quit(1)
+		return
+	print("SCREENSHOT: ", path)
 
 
 func show_area(area: String, spawn: Vector3, depth: int = 1) -> void:
@@ -35,44 +52,41 @@ func show_area(area: String, spawn: Vector3, depth: int = 1) -> void:
 	game.build_area(area, depth, spawn)
 	game.mode = "game"
 	game.ui.clear_overlay()
-	await frames(24)
+	await frames(6)
 
 
-func run() -> void:
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUTPUT_DIR))
-	DisplayServer.window_set_size(Vector2i(1280, 720))
-
+func _render_all() -> void:
 	game = load("res://scenes/legends.tscn").instantiate()
 	root.add_child(game)
-	await frames(30)
+	game.state.music = false
+	game.state.sound = false
+	game.audio.playback_enabled = false
+	game.audio.shutdown()
+	await frames(8)
 
-	# The real current title screen and its landing-area background.
 	await capture("01-title")
 
-	# Current playable Flutter landing area.
 	game.state.repair = 2
 	game.state.quest_started = true
 	await show_area("island", Vector3(0, 0, 8))
 	game.player.position = Vector3(-1.5, 0, 7.0)
 	await capture("02-flutter-landing")
 
-	# Flutter interior.
 	await show_area("cabin", Vector3(0, 0, 3))
 	game.player.position = Vector3(0, 0, 2.5)
 	await capture("03-flutter-cabin")
 
-	# Current Northern Ruins layout and combat presentation.
 	await show_area("ruins", Vector3(0, 0, 10.5), 1)
 	game.player.position = Vector3(0, 0, 9.5)
 	await capture("04-northern-ruins")
 
-	# Current Bonne/Feldynaught combat arena.
 	game.state.tron_defeated = false
 	await show_area("bonne", Vector3(0, 0, 6.5))
 	game.player.position = Vector3(0, 0, 6.0)
 	await capture("05-bonne-showdown")
 
+	watchdog.stop()
 	game.audio.shutdown()
 	game.queue_free()
-	await frames(8)
+	await frames(3)
 	quit()
