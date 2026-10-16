@@ -48,6 +48,44 @@ jobs:
               print(f"{path}: {image.size} -> {frame.size}")
           PY
 
+      - name: Integrate Hanmuru boss art and QA capture timing
+        run: |
+          set -euxo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/refractor_pit_runtime.gd")
+          text = path.read_text()
+          text = text.replace(
+              'const TEX_GUARDIAN: Texture2D = preload("res://assets/characters/guardian.png")\n',
+              'const TEX_GUARDIAN: Texture2D = preload("res://assets/characters/guardian.png")\nconst TEX_HANMURU: Texture2D = preload("res://assets/characters/hanmuru_doll.png")\n',
+              1,
+          )
+          text = text.replace(
+              '"name": "HANMURU DOLL",\n        "tex": TEX_GUARDIAN,\n        "pos": Vector2(640.0, 150.0),',
+              '"name": "HANMURU DOLL",\n        "tex": TEX_HANMURU,\n        "pos": Vector2(640.0, 150.0),',
+              1,
+          )
+          text = text.replace(
+              '    new_run()\n    spawn_wave()\n',
+              '    new_run()\n    radio_timer = 0.0\n    message_timer = 0.0\n    spawn_wave()\n',
+              1,
+          )
+          text = text.replace(
+              '    mode = "terminal"\n    await get_tree().process_frame\n    save_runtime_screen(screen_dir.path_join("04_development_terminal.png"))',
+              '    mode = "terminal"\n    radio_timer = 0.0\n    message_timer = 0.0\n    queue_redraw()\n    await get_tree().process_frame\n    await get_tree().process_frame\n    save_runtime_screen(screen_dir.path_join("04_development_terminal.png"))',
+              1,
+          )
+          text = text.replace(
+              '    mode = "run"\n    enemies.clear()\n    enemy_shots.clear()\n    spawn_boss()',
+              '    mode = "run"\n    radio_timer = 0.0\n    message_timer = 0.0\n    enemies.clear()\n    enemy_shots.clear()\n    spawn_boss()',
+              1,
+          )
+          path.write_text(text)
+          assert 'TEX_HANMURU' in text
+          assert '"tex": TEX_HANMURU' in text
+          PY
+
       - name: Install Godot 4.7.2
         run: |
           set -euxo pipefail
