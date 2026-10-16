@@ -1,9 +1,6 @@
 name: Build Refractor Pit Windows
 
 on:
-  push:
-    branches:
-      - ballpit-godot-export
   workflow_dispatch:
 
 permissions:
@@ -15,6 +12,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Decode embedded MML render assets
+        run: |
+          set -euxo pipefail
+          mkdir -p assets/renders
+          if compgen -G "embedded_assets/renders/*.b64" > /dev/null; then
+            for f in embedded_assets/renders/*.b64; do
+              out="assets/renders/$(basename "${f%.b64}").png"
+              base64 -d "$f" > "$out"
+            done
+          fi
 
       - name: Install Godot 4.7.2
         run: |
