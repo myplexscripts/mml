@@ -220,7 +220,7 @@ func _take_starter_key(flag_name: String, counter_name: StringName, label: Strin
 
 func _refresh_current_area() -> void:
 	if not active(): return
-	var at := player.position
+	var at: Vector3 = player.position
 	build_area(area, depth, at)
 
 
