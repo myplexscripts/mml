@@ -304,7 +304,7 @@ func _complete_generic_stage() -> void:
 		if is_instance_valid(enemy) and not enemy.defeated:
 			toast("The mission area is not clear yet.")
 			return
-	var step := state.campaign_step
+	var step: int = int(state.campaign_step)
 	state.set_story_flag(StringName("campaign_step_%d_complete" % step))
 	if step >= 20:
 		state.set_story_flag(&"campaign_complete")
@@ -352,7 +352,7 @@ func knock_out() -> void:
 
 
 func objective() -> String:
-	var step := state.campaign_step
+	var step: int = int(state.campaign_step)
 	match step:
 		1:
 			if not state.story_flag(&"hanmuru_defeated"): return "Escape Ocean Tower / defeat the rooftop guardian"
