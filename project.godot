@@ -1,11 +1,11 @@
 ; Engine configuration file.
-; Mega Man Legends: Flutterbound fan game
+; Mega Man Legends: Refractor Pit fan prototype
 config_version=5
 
 [application]
-config/name="Mega Man Legends: Flutterbound"
-config/version="0.6.1"
-run/main_scene="res://scenes/legends.tscn"
+config/name="Mega Man Legends: Refractor Pit"
+config/version="0.1.0"
+run/main_scene="res://scenes/refractor_pit.tscn"
 config/features=PackedStringArray("4.7")
 
 [display]
