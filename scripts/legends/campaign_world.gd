@@ -80,8 +80,6 @@ func build_ocean_tower() -> void:
 	bounds = Rect2(-19, -14, 38, 28)
 	_floor_grid(Vector2(38, 28), Color("94a79d"), C_ART + "cabin_metal.png")
 	_perimeter(Vector2(38, 28), Color("728d86"), C_ART + "wall.png")
-	# Right-angle mechanical passages. The west branch is deliberately optional,
-	# preserving the original wrong-turn/trap idea in a top-down layout.
 	for entry in [
 		[Vector3(-8, 1.0, 5), Vector3(.65, 2.0, 15)],
 		[Vector3(8, 1.0, 3), Vector3(.65, 2.0, 18)],
@@ -98,15 +96,12 @@ func build_ocean_tower() -> void:
 		lamp.light_energy = .5
 		lamp.omni_range = 5
 		add_child(lamp)
-	# Elevation lesson translated into broad steps rather than a camera-facing jump puzzle.
 	for i in range(5):
 		box(Vector3(3.2, .08 + i * .11, -4.5 - i * .62), Vector3(4.2, .16 + i * .02, .65), Color("a9b7a7"), true, C_ART + "metal.png")
-	# Wrong-turn cache and ambush.
 	model("container", Vector3(-15, 0, -9.5), .95)
 	interact("Ancient side cache", Vector3(-15, 0, -9.5), "ocean_cache")
 	game.spawn_enemy("horokko", Vector3(-12.5, 0, -7.7), 32)
 	game.spawn_enemy("horokko", Vector3(-15.5, 0, -6.2), 32)
-	# Main escape route.
 	game.spawn_enemy("sharukurusu", Vector3(4.3, 0, 5.0), 44)
 	game.spawn_enemy("horokko", Vector3(11.5, 0, -2.5), 38)
 	if not game.state.story_flag(&"hanmuru_defeated"):
@@ -118,21 +113,18 @@ func build_ocean_tower() -> void:
 func build_cardon_forest() -> void:
 	bounds = Rect2(-20, -14, 40, 28)
 	_floor_grid(Vector2(40, 28), Color("789768"), C_ART + "grass.png")
-	# Brown cliff walls around the crash clearing.
 	_perimeter(Vector2(40, 28), Color("8e775c"), C_ART + "stone.png")
 	for at in [Vector3(-16,0,-9),Vector3(-13,0,9),Vector3(-7,0,-11),Vector3(8,0,10),Vector3(15,0,-7),Vector3(17,0,7)]:
 		tree(at)
 	for at in [Vector3(-11,0,-7), Vector3(13,0,8), Vector3(10,0,-9)]:
 		var rock := box(at + Vector3.UP*.35, Vector3(1.5,.7,1.2), Color("9b8c70"), true, C_ART + "rock.png")
 		rock.rotation.y = at.x * .07
-	# Damaged Flutter is scenery here, not the opening hub.
 	var ship := model("flutter", Vector3(-11,-3.7,2.5), 10.7, -PI/2)
 	ship.rotation.z = -.08
 	ship.name = "CrashedFlutter"
 	game.spawn_npc("Roll", "roll", Vector3(-5.8,0,3.2))
 	game.spawn_npc("Barrell", "barrell", Vector3(-7.5,0,5.2))
 	game.spawn_npc("Data", "data", Vector3(-4.8,0,5.4))
-	# Forest road toward Apple Market.
 	box(Vector3(7,.02,0), Vector3(23,.04,4.4), Color("ad9c78"), false, C_ART + "sand.png")
 	for z in [-2.7,2.7]:
 		for x in range(-1,19,3):
@@ -145,7 +137,6 @@ func build_apple_market() -> void:
 	bounds = Rect2(-18,-10,36,20)
 	_floor_grid(Vector2(36,20), Color("b5b0a2"), C_ART + "cabin_metal.png")
 	_perimeter(Vector2(36,20), Color("9f987e"), C_ART + "cabin_panel.png")
-	# Covered market aisle with distinct shop fronts on either side.
 	for x in [-12.0,-6.0,0.0,6.0,12.0]:
 		box(Vector3(x,1.0,-7.5), Vector3(4.8,2.0,2.6), Color("8f7359"), true, C_ART + "cabin_panel.png")
 		box(Vector3(x,1.0,7.5), Vector3(4.8,2.0,2.6), Color("7c8790"), true, C_ART + "cabin_panel.png")
@@ -183,7 +174,6 @@ func build_downtown() -> void:
 	bounds = Rect2(-20,-14,40,28)
 	_floor_grid(Vector2(40,28), Color("a9aaa1"), C_ART + "cabin_metal.png")
 	_perimeter(Vector2(40,28), Color("8a9187"), C_ART + "stone.png")
-	# Open Kattelox street grid.
 	for x in [-13.0,0.0,13.0]:
 		box(Vector3(x,1.2,-9),Vector3(8.5,2.4,5.2),Color("aa8b6f"),true,C_ART+"cabin_panel.png")
 		box(Vector3(x,1.2,9),Vector3(8.5,2.4,5.2),Color("8096a0"),true,C_ART+"cabin_panel.png")
@@ -201,7 +191,6 @@ func build_city_hall() -> void:
 	bounds = Rect2(-20,-14,40,28)
 	_floor_grid(Vector2(40,28), Color("b0afa2"), C_ART + "cabin_metal.png")
 	_perimeter(Vector2(40,28), Color("8d9289"), C_ART + "stone.png")
-	# Civic buildings frame the combat district.
 	for entry in [
 		[Vector3(0,1.6,-9.5),Vector3(12,3.2,5),Color("b9af94")],
 		[Vector3(-13,1.3,7.5),Vector3(8,2.6,6),Color("8297a0")],
@@ -224,9 +213,6 @@ func build_campaign_blockout(id: String) -> void:
 	var floor_colour := Color("97a790") if underground else (Color("7e9a6d") if outdoor and id != "old_city" else Color("a7aaa2"))
 	_floor_grid(Vector2(40,28),floor_colour,floor_texture)
 	_perimeter(Vector2(40,28),Color("768a7c") if underground else Color("8b8b7d"),C_ART+("wall.png" if underground else "stone.png"))
-
-	# Give each later campaign region a recognisable spatial identity while it is
-	# still a gameplay blockout. These are replaced with researched layouts stage by stage.
 	if id in ["yass_plains","cardon_approach"]:
 		for at in [Vector3(-15,0,-9),Vector3(-10,0,9),Vector3(11,0,-9),Vector3(15,0,8),Vector3(0,0,10)]:tree(at)
 	elif id == "lake_jyun":
@@ -241,8 +227,7 @@ func build_campaign_blockout(id: String) -> void:
 	else:
 		for p in [Vector3(-10,1,-5),Vector3(10,1,-5),Vector3(-10,1,5),Vector3(10,1,5)]:
 			box(p,Vector3(2.0,2.0,2.0),Color("879b8c"),true,C_ART+"pillar.png")
-
-	var step := game.state.campaign_step
+	var step: int = int(game.state.campaign_step)
 	var enemy_count := 0 if step == 20 else clampi(2 + int(step / 4), 3, 6)
 	for i in range(enemy_count):
 		var x := -10.0 + float((i * 7) % 21)
