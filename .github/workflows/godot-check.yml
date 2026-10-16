@@ -32,6 +32,13 @@ jobs:
       - name: Render current gameplay screenshots
         run: xvfb-run -a godot --path . --rendering-method gl_compatibility --script tools/render_scene_screenshots.gd
 
+      - name: Upload current gameplay screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flutterbound-Screenshots
+          path: build/screenshots/*.png
+          if-no-files-found: error
+
       - name: Commit refreshed model sheet
         if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
         run: |
@@ -50,13 +57,6 @@ jobs:
 
       - name: Package builds with instructions and credits
         run: python tools/package_game.py
-
-      - name: Upload current gameplay screenshots
-        uses: actions/upload-artifact@v4
-        with:
-          name: Flutterbound-Screenshots
-          path: build/screenshots/*.png
-          if-no-files-found: error
 
       - name: Upload real model sheet
         uses: actions/upload-artifact@v4
