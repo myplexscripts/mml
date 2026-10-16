@@ -26,8 +26,21 @@ jobs:
       - name: Install virtual display
         run: sudo apt-get update && sudo apt-get install -y xvfb
 
+      - name: Import Godot resources
+        run: godot --headless --path . --editor --quit
+
       - name: Render real model contact sheet
         run: xvfb-run -a godot --path . --rendering-method gl_compatibility --script tools/render_model_sheet.gd
+
+      - name: Render current gameplay screenshots
+        run: xvfb-run -a godot --path . --rendering-method gl_compatibility --script tools/render_scene_screenshots.gd
+
+      - name: Upload current gameplay screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flutterbound-Screenshots
+          path: build/screenshots/*.png
+          if-no-files-found: error
 
       - name: Commit refreshed model sheet
         if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
