@@ -35,19 +35,21 @@ jobs:
           sudo mv Godot_v4.7.2-stable_linux.x86_64 /usr/local/bin/godot
           godot --version
 
-      - name: Install export templates
+      - name: Install export templates and Xvfb
         run: |
           set -euxo pipefail
           wget -q https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz
           mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
           unzip -q Godot_v4.7.2-stable_export_templates.tpz -d /tmp/godot-templates
           cp -R /tmp/godot-templates/templates/. "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
 
       - name: Import and validate project
         run: |
           set -uo pipefail
           set +e
-          timeout 120s godot --headless --path . --editor --quit 2>&1 | tee godot-import.log
+          timeout 120s godot --headless --audio-driver Dummy --path . --editor --quit 2>&1 | tee godot-import.log
           status=${PIPESTATUS[0]}
           set -e
           if [ "$status" -ne 0 ]; then
@@ -62,7 +64,7 @@ jobs:
         run: |
           set -uo pipefail
           set +e
-          timeout 8s godot --headless --path . 2>&1 | tee godot-runtime.log
+          timeout 8s godot --headless --audio-driver Dummy --path . 2>&1 | tee godot-runtime.log
           status=${PIPESTATUS[0]}
           set -e
           if [ "$status" -ne 0 ] && [ "$status" -ne 124 ]; then
@@ -73,12 +75,51 @@ jobs:
             exit 1
           fi
 
+      - name: Verify gameplay mechanics
+        run: |
+          set -uo pipefail
+          set +e
+          timeout 30s godot --headless --audio-driver Dummy --path . -- --self-test 2>&1 | tee godot-selftest.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            cat godot-selftest.log
+            exit "$status"
+          fi
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Invalid call|Invalid access|push_error" godot-selftest.log; then
+            echo "Godot mechanics self-test reported an error"
+            exit 1
+          fi
+          grep -q "SELFTEST PASS" godot-selftest.log
+
+      - name: Capture actual runtime screenshots
+        run: |
+          set -uo pipefail
+          mkdir -p build/screens
+          set +e
+          timeout 45s xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path . -- --capture-screens 2>&1 | tee godot-capture.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            cat godot-capture.log
+            exit "$status"
+          fi
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Invalid call|Invalid access" godot-capture.log; then
+            echo "Runtime capture reported a Godot error"
+            exit 1
+          fi
+          grep -q "CAPTURE PASS" godot-capture.log
+          for f in 01_menu.png 02_early_combat.png 03_dense_combat.png 04_development_terminal.png 05_boss.png; do
+            test -s "build/screens/$f"
+          done
+          ls -lh build/screens
+
       - name: Export Windows EXE
         run: |
           set -uo pipefail
           mkdir -p build/windows
           set +e
-          godot --headless --path . --export-release "Windows Desktop" "build/windows/Mega Man Legends - Refractor Pit.exe" 2>&1 | tee godot-export.log
+          godot --headless --audio-driver Dummy --path . --export-release "Windows Desktop" "build/windows/Mega Man Legends - Refractor Pit.exe" 2>&1 | tee godot-export.log
           status=${PIPESTATUS[0]}
           set -e
           if [ "$status" -ne 0 ]; then
@@ -103,4 +144,11 @@ jobs:
         with:
           name: mml-refractor-pit-windows
           path: build/windows/MML-Refractor-Pit-Windows.zip
+          if-no-files-found: error
+
+      - name: Upload runtime screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: mml-refractor-pit-runtime-screens
+          path: build/screens/*.png
           if-no-files-found: error
