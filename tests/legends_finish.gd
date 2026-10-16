@@ -11,7 +11,7 @@ func check(condition: bool,message: String):
 func ray(from: Vector3,to: Vector3) -> Dictionary:
  return game.world.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(from,to,1))
 func run():
- game=load("res://scenes/legends.tscn").instantiate();root.add_child(game);await ticks()
+ game=load("res://scripts/legends/main.gd").new();root.add_child(game);await ticks()
  var quit_button=game.ui.overlay.find_child("QuitGame",true,false)
  check(quit_button!=null and quit_button.size.y>=44 and quit_button.get_global_rect().end.y<=720,"native Quit button is accessible within the viewport")
  game.start_new()
